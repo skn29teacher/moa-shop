@@ -1,0 +1,38 @@
+erDiagram
+    users ||--o{ orders : "회원의 장바구니와 주문"
+    orders ||--o{ order_items : "장바구니 또는 주문의 상품"
+    products ||--o{ order_items : "상품 참조와 구매 시점 정보"
+    orders ||--o{ payments : "결제 시도 결과"
+
+    users {
+        uuid id PK
+        varchar email UK
+        text password_hash
+        timestamptz deleted_at
+    }
+    products {
+        uuid id PK
+        varchar name
+        numeric price
+        integer stock
+    }
+    orders {
+        uuid id PK
+        uuid user_id FK
+        varchar status
+        numeric total_amount
+    }
+    order_items {
+        uuid id PK
+        uuid order_id FK
+        uuid product_id FK
+        varchar product_name
+        integer quantity
+        numeric unit_price
+    }
+    payments {
+        uuid id PK
+        uuid order_id FK
+        numeric amount
+        varchar status
+    }

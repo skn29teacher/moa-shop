@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f8fb">
+  <meta name="description" content="상품을 둘러보고 주문하는 쇼핑몰 MVP">
+  <title>모아샵 · 쇼핑몰</title>
+  <link rel="stylesheet" href="/static/css/app.css">
+  <script defer src="/static/js/app.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="#/products" aria-label="모아샵 홈">moa<span>shop</span></a>
+      <button id="menu-toggle" class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav" aria-label="메뉴 열기">
+        <span></span><span></span><span></span>
+      </button>
+      <nav id="site-nav" class="site-nav" aria-label="주요 메뉴">
+        <a href="#/products">상품</a>
+        <a href="#/cart">장바구니</a>
+        <a href="#/orders">구매내역</a>
+        <a href="#/account">회원정보</a>
+        <a href="#/login" data-guest-link>로그인</a>
+        <button id="logout-button" class="nav-logout" type="button" hidden>로그아웃</button>
+      </nav>
+    </div>
+  </header>
+
+  <main id="app" class="page-shell" tabindex="-1" aria-live="polite">
+    <div class="loading-state">화면을 준비하고 있습니다…</div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner"><span>moashop</span><span>모의 결제 쇼핑몰</span></div>
+  </footer>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>

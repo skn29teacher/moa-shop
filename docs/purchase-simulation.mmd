@@ -1,0 +1,399 @@
+---
+config:
+  htmlLabels: false
+  theme: base
+  themeVariables:
+    fontFamily: 'Malgun Gothic, sans-serif'
+    fontSize: '14px'
+  flowchart:
+    htmlLabels: false
+---
+block-beta
+    columns 1
+    %% 1. 상품 조회
+    block:s1t0
+        columns 3
+        s1t0title["products"]:3
+        s1t0h0["id"] s1t0h1["name"] s1t0h2["price"]
+        s1t0v0["P1"] s1t0v1["베이직 반팔<br/>티셔츠"] s1t0v2["19000"]
+    end
+    style s1t0title fill:#dbeafe,stroke:#64748b,color:#172554
+    style s1t0h0 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s1t0h1 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s1t0h2 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s1t0v0 fill:#ffffff,stroke:#64748b,color:#0f172a
+    style s1t0v1 fill:#ffffff,stroke:#64748b,color:#0f172a
+    style s1t0v2 fill:#ffffff,stroke:#64748b,color:#0f172a
+    block:s1t1
+        columns 2
+        s1t1title["products"]:2
+        s1t1h0["id"] s1t1h1["stock"]
+        s1t1v0["P1"] s1t1v1["30"]
+    end
+    style s1t1title fill:#dbeafe,stroke:#64748b,color:#172554
+    style s1t1h0 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s1t1h1 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s1t1v0 fill:#ffffff,stroke:#64748b,color:#0f172a
+    style s1t1v1 fill:#ffffff,stroke:#64748b,color:#0f172a
+    %% 2. 로그인
+    block:s2t0
+        columns 3
+        s2t0title["users"]:3
+        s2t0h0["id"] s2t0h1["name"] s2t0h2["deleted_<br/>at"]
+        s2t0v0["U1"] s2t0v1["김구매"] s2t0v2["NULL"]
+    end
+    style s2t0title fill:#dbeafe,stroke:#64748b,color:#172554
+    style s2t0h0 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s2t0h1 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s2t0h2 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s2t0v0 fill:#ffffff,stroke:#64748b,color:#0f172a
+    style s2t0v1 fill:#ffffff,stroke:#64748b,color:#0f172a
+    style s2t0v2 fill:#ffffff,stroke:#64748b,color:#0f172a
+    block:s2t1
+        columns 2
+        s2t1title["users"]:2
+        s2t1h0["id"] s2t1h1["email"]
+        s2t1v0["U1"] s2t1v1["buyer@<br/>example.com"]
+    end
+    style s2t1title fill:#dbeafe,stroke:#64748b,color:#172554
+    style s2t1h0 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s2t1h1 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s2t1v0 fill:#ffffff,stroke:#64748b,color:#0f172a
+    style s2t1v1 fill:#ffffff,stroke:#64748b,color:#0f172a
+    %% 3. 장바구니 담기
+    block:s3t0
+        columns 3
+        s3t0title["orders"]:3
+        s3t0h0["id PK"] s3t0h1["user_<br/>id FK"] s3t0h2["status"]
+        s3t0v0["O1"] s3t0v1["U1"] s3t0v2["cart"]
+    end
+    style s3t0title fill:#dbeafe,stroke:#64748b,color:#172554
+    style s3t0h0 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s3t0h1 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s3t0h2 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s3t0v0 fill:#ffffff,stroke:#64748b,color:#0f172a
+    style s3t0v1 fill:#ffffff,stroke:#64748b,color:#0f172a
+    style s3t0v2 fill:#ffffff,stroke:#64748b,color:#0f172a
+    block:s3t1
+        columns 2
+        s3t1title["orders"]:2
+        s3t1h0["id"] s3t1h1["total_<br/>amount"]
+        s3t1v0["O1"] s3t1v1["19000"]
+    end
+    style s3t1title fill:#dbeafe,stroke:#64748b,color:#172554
+    style s3t1h0 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s3t1h1 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s3t1v0 fill:#ffffff,stroke:#64748b,color:#0f172a
+    style s3t1v1 fill:#ffffff,stroke:#64748b,color:#0f172a
+    block:s3t2
+        columns 3
+        s3t2title["order_items"]:3
+        s3t2h0["id PK"] s3t2h1["order_<br/>id FK"] s3t2h2["product_<br/>id FK"]
+        s3t2v0["I1"] s3t2v1["O1"] s3t2v2["P1"]
+    end
+    style s3t2title fill:#dbeafe,stroke:#64748b,color:#172554
+    style s3t2h0 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s3t2h1 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s3t2h2 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s3t2v0 fill:#ffffff,stroke:#64748b,color:#0f172a
+    style s3t2v1 fill:#ffffff,stroke:#64748b,color:#0f172a
+    style s3t2v2 fill:#ffffff,stroke:#64748b,color:#0f172a
+    block:s3t3
+        columns 2
+        s3t3title["order_items"]:2
+        s3t3h0["id"] s3t3h1["product_<br/>name"]
+        s3t3v0["I1"] s3t3v1["베이직 반팔<br/>티셔츠"]
+    end
+    style s3t3title fill:#dbeafe,stroke:#64748b,color:#172554
+    style s3t3h0 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s3t3h1 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s3t3v0 fill:#ffffff,stroke:#64748b,color:#0f172a
+    style s3t3v1 fill:#ffffff,stroke:#64748b,color:#0f172a
+    block:s3t4
+        columns 3
+        s3t4title["order_items"]:3
+        s3t4h0["id"] s3t4h1["quantity"] s3t4h2["unit_<br/>price"]
+        s3t4v0["I1"] s3t4v1["1"] s3t4v2["19000"]
+    end
+    style s3t4title fill:#dbeafe,stroke:#64748b,color:#172554
+    style s3t4h0 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s3t4h1 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s3t4h2 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s3t4v0 fill:#ffffff,stroke:#64748b,color:#0f172a
+    style s3t4v1 fill:#ffffff,stroke:#64748b,color:#0f172a
+    style s3t4v2 fill:#ffffff,stroke:#64748b,color:#0f172a
+    %% 4. 수량 변경
+    block:s4t0
+        columns 3
+        s4t0title["order_items"]:3
+        s4t0h0["id"] s4t0h1["order_<br/>id"] s4t0h2["product_<br/>id"]
+        s4t0v0["I1"] s4t0v1["O1"] s4t0v2["P1"]
+    end
+    style s4t0title fill:#dbeafe,stroke:#64748b,color:#172554
+    style s4t0h0 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s4t0h1 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s4t0h2 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s4t0v0 fill:#ffffff,stroke:#64748b,color:#0f172a
+    style s4t0v1 fill:#ffffff,stroke:#64748b,color:#0f172a
+    style s4t0v2 fill:#ffffff,stroke:#64748b,color:#0f172a
+    block:s4t1
+        columns 3
+        s4t1title["order_items"]:3
+        s4t1h0["id"] s4t1h1["quantity"] s4t1h2["unit_<br/>price"]
+        s4t1v0["I1"] s4t1v1["2"] s4t1v2["19000"]
+    end
+    style s4t1title fill:#dbeafe,stroke:#64748b,color:#172554
+    style s4t1h0 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s4t1h1 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s4t1h2 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s4t1v0 fill:#ffffff,stroke:#64748b,color:#0f172a
+    style s4t1v1 fill:#ffffff,stroke:#64748b,color:#0f172a
+    style s4t1v2 fill:#ffffff,stroke:#64748b,color:#0f172a
+    block:s4t2
+        columns 3
+        s4t2title["orders"]:3
+        s4t2h0["id"] s4t2h1["status"] s4t2h2["total_<br/>amount"]
+        s4t2v0["O1"] s4t2v1["cart"] s4t2v2["38000"]
+    end
+    style s4t2title fill:#dbeafe,stroke:#64748b,color:#172554
+    style s4t2h0 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s4t2h1 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s4t2h2 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s4t2v0 fill:#ffffff,stroke:#64748b,color:#0f172a
+    style s4t2v1 fill:#ffffff,stroke:#64748b,color:#0f172a
+    style s4t2v2 fill:#ffffff,stroke:#64748b,color:#0f172a
+    %% 5. 주문 생성
+    block:s5t0
+        columns 3
+        s5t0title["products"]:3
+        s5t0h0["id"] s5t0h1["price"] s5t0h2["stock"]
+        s5t0v0["P1"] s5t0v1["19000"] s5t0v2["30"]
+    end
+    style s5t0title fill:#dbeafe,stroke:#64748b,color:#172554
+    style s5t0h0 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s5t0h1 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s5t0h2 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s5t0v0 fill:#ffffff,stroke:#64748b,color:#0f172a
+    style s5t0v1 fill:#ffffff,stroke:#64748b,color:#0f172a
+    style s5t0v2 fill:#ffffff,stroke:#64748b,color:#0f172a
+    block:s5t1
+        columns 3
+        s5t1title["order_items"]:3
+        s5t1h0["id"] s5t1h1["order_<br/>id"] s5t1h2["product_<br/>id"]
+        s5t1v0["I1"] s5t1v1["O1"] s5t1v2["P1"]
+    end
+    style s5t1title fill:#dbeafe,stroke:#64748b,color:#172554
+    style s5t1h0 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s5t1h1 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s5t1h2 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s5t1v0 fill:#ffffff,stroke:#64748b,color:#0f172a
+    style s5t1v1 fill:#ffffff,stroke:#64748b,color:#0f172a
+    style s5t1v2 fill:#ffffff,stroke:#64748b,color:#0f172a
+    block:s5t2
+        columns 3
+        s5t2title["order_items"]:3
+        s5t2h0["id"] s5t2h1["quantity"] s5t2h2["unit_<br/>price"]
+        s5t2v0["I1"] s5t2v1["2"] s5t2v2["19000"]
+    end
+    style s5t2title fill:#dbeafe,stroke:#64748b,color:#172554
+    style s5t2h0 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s5t2h1 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s5t2h2 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s5t2v0 fill:#ffffff,stroke:#64748b,color:#0f172a
+    style s5t2v1 fill:#ffffff,stroke:#64748b,color:#0f172a
+    style s5t2v2 fill:#ffffff,stroke:#64748b,color:#0f172a
+    block:s5t3
+        columns 3
+        s5t3title["orders"]:3
+        s5t3h0["id"] s5t3h1["user_<br/>id"] s5t3h2["status"]
+        s5t3v0["O1"] s5t3v1["U1"] s5t3v2["pending"]
+    end
+    style s5t3title fill:#dbeafe,stroke:#64748b,color:#172554
+    style s5t3h0 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s5t3h1 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s5t3h2 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s5t3v0 fill:#ffffff,stroke:#64748b,color:#0f172a
+    style s5t3v1 fill:#ffffff,stroke:#64748b,color:#0f172a
+    style s5t3v2 fill:#ffffff,stroke:#64748b,color:#0f172a
+    block:s5t4
+        columns 3
+        s5t4title["orders"]:3
+        s5t4h0["id"] s5t4h1["total_<br/>amount"] s5t4h2["recipient_<br/>name"]
+        s5t4v0["O1"] s5t4v1["38000"] s5t4v2["김구매"]
+    end
+    style s5t4title fill:#dbeafe,stroke:#64748b,color:#172554
+    style s5t4h0 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s5t4h1 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s5t4h2 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s5t4v0 fill:#ffffff,stroke:#64748b,color:#0f172a
+    style s5t4v1 fill:#ffffff,stroke:#64748b,color:#0f172a
+    style s5t4v2 fill:#ffffff,stroke:#64748b,color:#0f172a
+    block:s5t5
+        columns 2
+        s5t5title["orders"]:2
+        s5t5h0["id"] s5t5h1["recipient_<br/>phone"]
+        s5t5v0["O1"] s5t5v1["010-1234-5678"]
+    end
+    style s5t5title fill:#dbeafe,stroke:#64748b,color:#172554
+    style s5t5h0 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s5t5h1 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s5t5v0 fill:#ffffff,stroke:#64748b,color:#0f172a
+    style s5t5v1 fill:#ffffff,stroke:#64748b,color:#0f172a
+    block:s5t6
+        columns 2
+        s5t6title["orders"]:2
+        s5t6h0["id"] s5t6h1["shipping_<br/>address"]
+        s5t6v0["O1"] s5t6v1["서울시 예시로 10"]
+    end
+    style s5t6title fill:#dbeafe,stroke:#64748b,color:#172554
+    style s5t6h0 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s5t6h1 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s5t6v0 fill:#ffffff,stroke:#64748b,color:#0f172a
+    style s5t6v1 fill:#ffffff,stroke:#64748b,color:#0f172a
+    block:s5t7
+        columns 3
+        s5t7title["orders"]:3
+        s5t7h0["id"] s5t7h1["ordered_<br/>at"] s5t7h2["paid_<br/>at"]
+        s5t7v0["O1"] s5t7v1["2026-10-29<br/>10:00+09"] s5t7v2["NULL"]
+    end
+    style s5t7title fill:#dbeafe,stroke:#64748b,color:#172554
+    style s5t7h0 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s5t7h1 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s5t7h2 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s5t7v0 fill:#ffffff,stroke:#64748b,color:#0f172a
+    style s5t7v1 fill:#ffffff,stroke:#64748b,color:#0f172a
+    style s5t7v2 fill:#ffffff,stroke:#64748b,color:#0f172a
+    %% 6. 모의 결제
+    block:s6t0
+        columns 3
+        s6t0title["order_items"]:3
+        s6t0h0["order_<br/>id"] s6t0h1["product_<br/>id"] s6t0h2["quantity"]
+        s6t0v0["O1"] s6t0v1["P1"] s6t0v2["2"]
+    end
+    style s6t0title fill:#dbeafe,stroke:#64748b,color:#172554
+    style s6t0h0 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s6t0h1 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s6t0h2 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s6t0v0 fill:#ffffff,stroke:#64748b,color:#0f172a
+    style s6t0v1 fill:#ffffff,stroke:#64748b,color:#0f172a
+    style s6t0v2 fill:#ffffff,stroke:#64748b,color:#0f172a
+    block:s6t1
+        columns 3
+        s6t1title["products"]:3
+        s6t1h0["id"] s6t1h1["price"] s6t1h2["stock"]
+        s6t1v0["P1"] s6t1v1["19000"] s6t1v2["28"]
+    end
+    style s6t1title fill:#dbeafe,stroke:#64748b,color:#172554
+    style s6t1h0 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s6t1h1 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s6t1h2 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s6t1v0 fill:#ffffff,stroke:#64748b,color:#0f172a
+    style s6t1v1 fill:#ffffff,stroke:#64748b,color:#0f172a
+    style s6t1v2 fill:#ffffff,stroke:#64748b,color:#0f172a
+    block:s6t2
+        columns 3
+        s6t2title["payments"]:3
+        s6t2h0["id"] s6t2h1["order_<br/>id"] s6t2h2["amount"]
+        s6t2v0["PAY1"] s6t2v1["O1"] s6t2v2["38000"]
+    end
+    style s6t2title fill:#dbeafe,stroke:#64748b,color:#172554
+    style s6t2h0 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s6t2h1 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s6t2h2 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s6t2v0 fill:#ffffff,stroke:#64748b,color:#0f172a
+    style s6t2v1 fill:#ffffff,stroke:#64748b,color:#0f172a
+    style s6t2v2 fill:#ffffff,stroke:#64748b,color:#0f172a
+    block:s6t3
+        columns 3
+        s6t3title["payments"]:3
+        s6t3h0["id"] s6t3h1["status"] s6t3h2["failure_<br/>reason"]
+        s6t3v0["PAY1"] s6t3v1["success"] s6t3v2["NULL"]
+    end
+    style s6t3title fill:#dbeafe,stroke:#64748b,color:#172554
+    style s6t3h0 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s6t3h1 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s6t3h2 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s6t3v0 fill:#ffffff,stroke:#64748b,color:#0f172a
+    style s6t3v1 fill:#ffffff,stroke:#64748b,color:#0f172a
+    style s6t3v2 fill:#ffffff,stroke:#64748b,color:#0f172a
+    block:s6t4
+        columns 3
+        s6t4title["orders"]:3
+        s6t4h0["id"] s6t4h1["user_<br/>id"] s6t4h2["status"]
+        s6t4v0["O1"] s6t4v1["U1"] s6t4v2["paid"]
+    end
+    style s6t4title fill:#dbeafe,stroke:#64748b,color:#172554
+    style s6t4h0 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s6t4h1 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s6t4h2 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s6t4v0 fill:#ffffff,stroke:#64748b,color:#0f172a
+    style s6t4v1 fill:#ffffff,stroke:#64748b,color:#0f172a
+    style s6t4v2 fill:#ffffff,stroke:#64748b,color:#0f172a
+    block:s6t5
+        columns 3
+        s6t5title["orders"]:3
+        s6t5h0["id"] s6t5h1["total_<br/>amount"] s6t5h2["paid_<br/>at"]
+        s6t5v0["O1"] s6t5v1["38000"] s6t5v2["2026-10-29<br/>10:01+09"]
+    end
+    style s6t5title fill:#dbeafe,stroke:#64748b,color:#172554
+    style s6t5h0 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s6t5h1 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s6t5h2 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s6t5v0 fill:#ffffff,stroke:#64748b,color:#0f172a
+    style s6t5v1 fill:#ffffff,stroke:#64748b,color:#0f172a
+    style s6t5v2 fill:#ffffff,stroke:#64748b,color:#0f172a
+    %% 7. 구매내역 조회
+    block:s7t0
+        columns 3
+        s7t0title["조회 결과"]:3
+        s7t0h0["order_<br/>id"] s7t0h1["user_<br/>id"] s7t0h2["product_<br/>id"]
+        s7t0v0["O1"] s7t0v1["U1"] s7t0v2["P1"]
+    end
+    style s7t0title fill:#dbeafe,stroke:#64748b,color:#172554
+    style s7t0h0 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s7t0h1 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s7t0h2 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s7t0v0 fill:#ffffff,stroke:#64748b,color:#0f172a
+    style s7t0v1 fill:#ffffff,stroke:#64748b,color:#0f172a
+    style s7t0v2 fill:#ffffff,stroke:#64748b,color:#0f172a
+    block:s7t1
+        columns 3
+        s7t1title["조회 결과"]:3
+        s7t1h0["product_<br/>name"] s7t1h1["quantity"] s7t1h2["unit_<br/>price"]
+        s7t1v0["베이직 반팔<br/>티셔츠"] s7t1v1["2"] s7t1v2["19000"]
+    end
+    style s7t1title fill:#dbeafe,stroke:#64748b,color:#172554
+    style s7t1h0 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s7t1h1 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s7t1h2 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s7t1v0 fill:#ffffff,stroke:#64748b,color:#0f172a
+    style s7t1v1 fill:#ffffff,stroke:#64748b,color:#0f172a
+    style s7t1v2 fill:#ffffff,stroke:#64748b,color:#0f172a
+    block:s7t2
+        columns 3
+        s7t2title["조회 결과"]:3
+        s7t2h0["order_<br/>id"] s7t2h1["payment_<br/>id"] s7t2h2["amount"]
+        s7t2v0["O1"] s7t2v1["PAY1"] s7t2v2["38000"]
+    end
+    style s7t2title fill:#dbeafe,stroke:#64748b,color:#172554
+    style s7t2h0 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s7t2h1 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s7t2h2 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s7t2v0 fill:#ffffff,stroke:#64748b,color:#0f172a
+    style s7t2v1 fill:#ffffff,stroke:#64748b,color:#0f172a
+    style s7t2v2 fill:#ffffff,stroke:#64748b,color:#0f172a
+    block:s7t3
+        columns 3
+        s7t3title["조회 결과"]:3
+        s7t3h0["order_<br/>id"] s7t3h1["order_<br/>status"] s7t3h2["payment_<br/>status"]
+        s7t3v0["O1"] s7t3v1["paid"] s7t3v2["success"]
+    end
+    style s7t3title fill:#dbeafe,stroke:#64748b,color:#172554
+    style s7t3h0 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s7t3h1 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s7t3h2 fill:#e2e8f0,stroke:#64748b,color:#0f172a
+    style s7t3v0 fill:#ffffff,stroke:#64748b,color:#0f172a
+    style s7t3v1 fill:#ffffff,stroke:#64748b,color:#0f172a
+    style s7t3v2 fill:#ffffff,stroke:#64748b,color:#0f172a
+
+
