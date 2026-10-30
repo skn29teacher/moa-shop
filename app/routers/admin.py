@@ -1,4 +1,4 @@
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from flask import Blueprint, request
 from pydantic import Field
@@ -22,9 +22,9 @@ def create_product():
     payload = request_body(ProductWriteRequest)
     connection = get_connection()
     with connection.transaction():
-        row = connection.execute('''INSERT INTO public.products (name, description, price, stock)
-            VALUES (%s, %s, %s, %s) RETURNING id, name, description, price, stock''',
-            (payload.name, payload.description, payload.price, payload.stock)).fetchone()
+        row = connection.execute('''INSERT INTO products (id, name, description, price, stock)
+            VALUES (?, ?, ?, ?, ?) RETURNING id, name, description, price, stock''',
+            (uuid4(), payload.name, payload.description, payload.price, payload.stock)).fetchone()
     return json_response(row, ProductResponse, 201)
 
 
@@ -35,8 +35,8 @@ def update_product(product_id):
     payload = request_body(ProductWriteRequest)
     connection = get_connection()
     with connection.transaction():
-        row = connection.execute('''UPDATE public.products SET name=%s, description=%s,
-            price=%s, stock=%s, updated_at=now() WHERE id=%s
+        row = connection.execute('''UPDATE products SET name=?, description=?,
+            price=?, stock=?, updated_at=strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id=?
             RETURNING id, name, description, price, stock''',
             (payload.name, payload.description, payload.price, payload.stock, product_id)).fetchone()
         if not row:
@@ -51,7 +51,7 @@ def list_orders():
     offset = validate_value(Annotated[int, Field(ge=0)], request.args.get('offset', '0'), 'query.offset')
     connection = get_connection()
     with connection.transaction():
-        rows = connection.execute('''SELECT * FROM public.orders WHERE status <> 'cart'
-            ORDER BY created_at DESC, id LIMIT %s OFFSET %s''', (limit, offset)).fetchall()
+        rows = connection.execute('''SELECT * FROM orders WHERE status <> 'cart'
+            ORDER BY created_at DESC, id LIMIT ? OFFSET ?''', (limit, offset)).fetchall()
         result = [order_snapshot(connection, row) for row in rows]
     return json_response(result, list[OrderResponse])

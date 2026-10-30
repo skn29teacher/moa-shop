@@ -40,6 +40,17 @@ def start(connection, user, tokens):
     return value
 
 
+def load_session(connection, key):
+    row = sessions.lock(connection, key)
+    if not row:
+        raise authentication_error()
+    try:
+        tokens = json.loads(cipher().decrypt(row['encrypted_tokens'].encode()))
+    except (InvalidToken, ValueError, KeyError):
+        raise authentication_error() from None
+    return row, tokens
+
+
 def current():
     if 'auth_user' in g:
         return g.auth_user
@@ -48,41 +59,42 @@ def current():
         raise authentication_error()
     connection = get_connection()
     key = digest(value)
+    row, tokens = load_session(connection, key)
+    # Normal Supabase /user verification happens without holding SQLite's writer lock.
+    # Only refresh rotation requires a serialized read/refresh/update transaction.
     invalid = False
-    failure = None
-    with connection.transaction():
-        row = sessions.lock(connection, key)
-        if not row:
-            raise authentication_error()
-        try:
-            tokens = json.loads(cipher().decrypt(row['encrypted_tokens'].encode()))
-        except (InvalidToken, ValueError, KeyError):
-            raise authentication_error() from None
-        user = users.find_user_by_id(connection, row['user_id'])
-        if not user or user['deleted_at'] is not None or not user.get('auth_user_id'):
-            invalid = True
-        else:
-            try:
-                # Row lock serializes refresh-token rotation across tabs/workers.
-                if tokens['expires_at'] <= time.time() + 30:
+    if tokens['expires_at'] <= time.time() + 30:
+        with connection.transaction():
+            row, tokens = load_session(connection, key)
+            if tokens['expires_at'] <= time.time() + 30:
+                try:
                     tokens = provider().refresh(tokens['refresh_token'])
                     sessions.update(connection, key, encrypt(tokens))
-                identity = provider().user(tokens['access_token'])
-                invalid = UUID(identity['id']) != user['auth_user_id']
-            except HTTPException as exc:
-                if exc.status_code not in (400, 401, 403):
-                    failure = exc
-                else:
+                except HTTPException as exc:
+                    if exc.status_code not in (400, 401, 403):
+                        raise
+                    sessions.delete(connection, key)
                     invalid = True
-            if not invalid and failure is None:
-                g.auth_user = user
         if invalid:
+            raise authentication_error()
+    try:
+        identity = provider().user(tokens['access_token'])
+    except HTTPException as exc:
+        if exc.status_code not in (400, 401, 403):
+            raise
+        with connection.transaction():
             sessions.delete(connection, key)
-    if invalid:
+        raise authentication_error() from None
+    # Recheck after the network call: a concurrent logout/password change must take effect.
+    row = sessions.lock(connection, key)
+    user = users.find_user_by_id(connection, row['user_id']) if row else None
+    if (not user or user['deleted_at'] is not None or not user.get('auth_user_id')
+            or UUID(identity['id']) != user['auth_user_id']):
+        with connection.transaction():
+            sessions.delete(connection, key)
         raise authentication_error()
-    if failure:
-        raise failure
-    return g.auth_user
+    g.auth_user = user
+    return user
 
 
 def end(connection):

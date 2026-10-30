@@ -5,8 +5,7 @@ from copy import deepcopy
 from threading import RLock
 from uuid import uuid4
 
-from psycopg import OperationalError
-from psycopg.errors import UniqueViolation
+from sqlite3 import OperationalError, IntegrityError as UniqueViolation
 
 from tests.support import seed_rows, utcnow
 

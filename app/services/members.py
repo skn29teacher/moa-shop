@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from psycopg import Connection
+from app.db.connection import Connection
 
 from app.core.errors import HTTPException
 from app.core.security import authentication_error

@@ -17,10 +17,10 @@ def password_hash():
 
 
 @pytest.fixture
-def settings():
+def settings(tmp_path):
     # 실제 .env를 읽지 않습니다. 외부 접속에 사용할 수 없는 테스트 전용 설정입니다.
     return Settings(
-        _env_file=None, app_origin=ORIGIN, database_url="postgresql://test@invalid/test_only",
+        _env_file=None, app_origin=ORIGIN, database_path=tmp_path / "unit.sqlite3",
         secret_key="pytest-only-secret-" * 4, cookie_secure=False,
         supabase_url="https://auth.invalid", supabase_key="test-anon-key",
     )

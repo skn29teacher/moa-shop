@@ -524,11 +524,10 @@ logoutButton.addEventListener("click", async () => {
 });
 
 window.addEventListener("hashchange", renderRoute);
-// Email confirmation establishes the email identity; login still goes through the server.
-// Remove Supabase's implicit-flow fragments without persisting tokens in the browser.
-if (/^#(?:access_token|error)=/.test(window.location.hash)) {
-  const failed = window.location.hash.startsWith("#error=");
-  window.history.replaceState(null, "", window.location.pathname + (failed ? "#/login" : "#/products"));
-  showToast(failed ? "이메일 인증 링크를 확인해 주세요." : "이메일 인증을 확인했습니다. 로그인 후 서비스를 이용할 수 있습니다.");
+const confirmation = consumeAuthConfirmation(window.location, window.history);
+if (confirmation) {
+  showToast(confirmation === "error" ? "이메일 인증 링크를 확인해 주세요."
+    : confirmation === "confirmed" ? "이메일 인증을 확인했습니다. 로그인해 주세요."
+    : "이메일 인증을 완료한 뒤 로그인해 주세요.");
 }
 refreshUser().finally(renderRoute);

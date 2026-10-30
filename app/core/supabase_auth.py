@@ -37,7 +37,7 @@ class SupabaseAuth:
             raise HTTPException(status_code=503, detail='인증 서비스를 사용할 수 없습니다.') from None
 
     def signup(self, payload):
-        redirect = urlencode({'redirect_to': self.app_origin + '/'})
+        redirect = urlencode({'redirect_to': self.app_origin + '/auth/confirm'})
         return self.call('POST', '/signup?' + redirect, {
             'email': str(payload.email), 'password': payload.password.get_secret_value(),
             'data': payload.model_dump(exclude={'email', 'password'}),

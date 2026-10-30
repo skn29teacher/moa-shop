@@ -212,7 +212,7 @@ def test_payment_rolls_back_stock_if_late_stock_update_fails(buyer, store, monke
 
 
 def test_database_failure_during_payment_returns_service_unavailable_and_rolls_back(buyer, store, monkeypatch):
-    from psycopg import OperationalError
+    from sqlite3 import OperationalError
     from app.db import commerce
 
     order = buy_now(buyer, P1, 2).json()

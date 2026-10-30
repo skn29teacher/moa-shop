@@ -1,9 +1,8 @@
 import logging
+import sqlite3
 from urllib.parse import urlsplit
 
 from flask import Flask, jsonify, render_template, request
-from psycopg import OperationalError
-from psycopg_pool import PoolTimeout
 from werkzeug.exceptions import HTTPException as WerkzeugHTTPException
 
 from app.core.config import PROJECT_ROOT, Settings, get_settings
@@ -35,11 +34,11 @@ def create_app(settings: Settings | None = None, pool=None) -> Flask:
         pool = create_pool(settings)
     try:
         pool.open(wait=True, timeout=10)
-    except Exception:
+    except Exception as exc:
         pool.close()
         raise RuntimeError(
-            "DB 연결을 시작하지 못했습니다. DATABASE_URL과 Supabase 연결 상태를 확인하세요."
-        ) from None
+            "SQLite DB를 열거나 초기화하지 못했습니다. DATABASE_PATH, 파일 권한과 SQLite 버전을 확인하세요."
+        ) from exc
 
     app = Flask(
         __name__,
@@ -48,6 +47,8 @@ def create_app(settings: Settings | None = None, pool=None) -> Flask:
         static_url_path="/static",
     )
     app.config.update(settings=settings, db_pool=pool)
+    from app.cli import register_commands
+    register_commands(app)
     app.teardown_appcontext(close_connection)
     app.before_request(enforce_same_origin)
     app.register_blueprint(auth_router)
@@ -59,12 +60,13 @@ def create_app(settings: Settings | None = None, pool=None) -> Flask:
     app.register_blueprint(members_router)
 
     @app.get("/")
+    @app.get("/auth/confirm")
     def home_page():
         return render_template("index.html")
 
     @app.after_request
     def prevent_api_caching(response):
-        if request.path.startswith("/api/"):
+        if request.path.startswith("/api/") or request.path == "/auth/confirm":
             response.headers["Cache-Control"] = "no-store"
         return response
 
@@ -79,8 +81,7 @@ def create_app(settings: Settings | None = None, pool=None) -> Flask:
     def api_error_handler(exc: HTTPException):
         return jsonify(detail=exc.detail), exc.status_code
 
-    @app.errorhandler(OperationalError)
-    @app.errorhandler(PoolTimeout)
+    @app.errorhandler(sqlite3.OperationalError)
     def database_unavailable_handler(_exc: Exception):
         logger.error("데이터베이스 연결을 사용할 수 없습니다.")
         return jsonify(detail="DB 연결을 사용할 수 없습니다. 잠시 후 다시 시도하세요."), 503

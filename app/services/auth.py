@@ -1,5 +1,3 @@
-from uuid import UUID
-
 from app.core.errors import HTTPException
 from app.core.supabase_auth import provider
 from app.db import users
@@ -15,9 +13,16 @@ def signup(connection, payload):
 
 def login(connection, payload):
     result = provider().login(str(payload.email), payload.password.get_secret_value())
-    user = users.find_user_by_auth_id(connection, UUID(result['user']['id']))
-    if not user or user['deleted_at'] is not None:
+    try:
+        user = users.ensure_auth_profile(connection, result['user'])
+    except Exception:
+        try:
+            provider().logout(result['access_token'])
+        except HTTPException:
+            pass
+        raise
+    if user['deleted_at'] is not None:
         provider().logout(result['access_token'])
-        raise HTTPException(status_code=401, detail='사용 가능한 쇼핑몰 회원 정보가 없습니다. 기존 회원은 관리자에게 계정 연결을 요청하세요.')
+        raise HTTPException(status_code=401, detail='사용 가능한 쇼핑몰 회원 정보가 없습니다.')
     sessions.end(connection)
     return user, sessions.start(connection, user, result)

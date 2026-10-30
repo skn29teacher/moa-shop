@@ -17,27 +17,27 @@ from tests.support import ORIGIN, P1, PASSWORD, USER_A, snapshot, utcnow
 def test_settings_reject_invalid_app_origin(bad_origin):
     with pytest.raises(ValidationError):
         Settings(_env_file=None, app_origin=bad_origin,
-                 database_url="postgresql://test@invalid/test", secret_key="x" * 48)
+                 database_path="instance/test-only.sqlite3", secret_key="x" * 48)
 
 
-def test_settings_reject_bad_database_uri_and_short_secret():
+def test_settings_reject_bad_database_path_and_short_secret():
     with pytest.raises(ValidationError):
-        Settings(_env_file=None, app_origin=ORIGIN, database_url="mysql://x",
+        Settings(_env_file=None, app_origin=ORIGIN, database_path="mysql://x",
                  secret_key="x" * 48)
     with pytest.raises(ValidationError):
         Settings(_env_file=None, app_origin=ORIGIN,
-                 database_url="postgresql://test@invalid/test", secret_key="x" * 31)
+                 database_path="instance/test-only.sqlite3", secret_key="x" * 31)
 
 
 def test_https_requires_secure_cookie_and_lifetime_is_bounded():
     with pytest.raises(ValidationError):
         Settings(_env_file=None, app_origin="https://store.test",
-                 database_url="postgresql://test@invalid/test", secret_key="x" * 48,
+                 database_path="instance/test-only.sqlite3", secret_key="x" * 48,
                  cookie_secure=False)
     for days in (0, 31):
         with pytest.raises(ValidationError):
             Settings(_env_file=None, app_origin=ORIGIN,
-                     database_url="postgresql://test@invalid/test", secret_key="x" * 48,
+                     database_path="instance/test-only.sqlite3", secret_key="x" * 48,
                      session_days=days)
 
 

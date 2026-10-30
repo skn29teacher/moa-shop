@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     )
 
     app_origin: str = "http://127.0.0.1:8000"
-    database_url: SecretStr
+    database_path: Path = PROJECT_ROOT / "instance" / "shop.sqlite3"
     supabase_url: str | None = None
     supabase_key: SecretStr | None = None
     secret_key: SecretStr
@@ -43,13 +43,13 @@ class Settings(BaseSettings):
         _ = parsed.port
         return value
 
-    @field_validator("database_url")
+    @field_validator("database_path", mode="before")
     @classmethod
-    def validate_database_url(cls, value: SecretStr) -> SecretStr:
-        raw = value.get_secret_value()
-        if not raw.startswith(("postgresql://", "postgres://")) or "YOUR_" in raw:
-            raise ValueError("DATABASE_URL에 실제 Supabase PostgreSQL URI를 입력하세요.")
-        return value
+    def validate_database_path(cls, value) -> Path:
+        if not str(value).strip() or str(value) == ":memory:" or "://" in str(value):
+            raise ValueError("DATABASE_PATH에 SQLite 파일 경로를 입력하세요.")
+        path = Path(value).expanduser()
+        return (path if path.is_absolute() else PROJECT_ROOT / path).resolve()
 
     @field_validator("secret_key")
     @classmethod

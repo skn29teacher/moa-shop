@@ -1,8 +1,7 @@
 -- schema.sql 실행 후 사용합니다. 모든 금액은 KRW(원)입니다.
 -- 동일 ID가 있으면 건너뛰므로 재실행해도 판매 후 재고를 덮어쓰지 않습니다.
-BEGIN;
 
-INSERT INTO public.products (id, name, description, price, stock)
+INSERT INTO products (id, name, description, price, stock)
 VALUES
     ('10000000-0000-4000-8000-000000000001', '베이직 반팔 티셔츠',
         '일상에서 편하게 입는 면 반팔 티셔츠입니다.', 19000, 30),
@@ -15,5 +14,3 @@ VALUES
     ('10000000-0000-4000-8000-000000000005', '메모 노트',
         '재고 부족 동작 확인을 위한 품절 샘플 상품입니다.', 5000, 0)
 ON CONFLICT (id) DO NOTHING;
-
-COMMIT;

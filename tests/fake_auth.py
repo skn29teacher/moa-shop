@@ -15,8 +15,11 @@ class FakeAuth:
         refresh = f'{user_id}:{uuid4()}'
         self.store.tokens[access] = user_id
         self.store.tokens[refresh] = user_id
+        profile = next((u for u in self.store.tables['users'].values() if u['auth_user_id'] == user_id), {})
         return dict(access_token=access, refresh_token=refresh, expires_in=3600,
-                    user={'id': str(user_id)})
+                    user={'id': str(user_id), 'email': profile.get('email'), 'user_metadata': {
+                        'name': profile.get('name'), 'phone': profile.get('phone'), 'address': profile.get('address'),
+                    }})
 
     def signup(self, payload):
         email = str(payload.email)

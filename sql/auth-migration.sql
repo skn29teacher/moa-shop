@@ -1,3 +1,4 @@
+-- HISTORICAL POSTGRESQL MIGRATION. Do NOT run for the current SQLite app.
 -- Schema/auth integration only; this does not migrate or link existing member accounts.
 -- Run once AFTER schema.sql on new databases, or on an existing shop database.
 -- Back up first. Preserves existing users.id and all order/payment references.

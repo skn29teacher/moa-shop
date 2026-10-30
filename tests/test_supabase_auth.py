@@ -34,7 +34,7 @@ def test_signup_uses_application_origin_for_email_confirmation(monkeypatch):
     method, path, body = calls[0]
     assert method == 'POST'
     assert urlsplit(path).path == '/signup'
-    assert parse_qs(urlsplit(path).query) == {'redirect_to': ['http://127.0.0.1:8000/']}
+    assert parse_qs(urlsplit(path).query) == {'redirect_to': ['http://127.0.0.1:8000/auth/confirm']}
     assert body['email'] == 'buyer@example.com'
 
 
@@ -182,19 +182,18 @@ def test_admin_routes_reject_guest_and_customer(client, settings, path, method):
 def test_admin_products_orders_and_immediate_role_revocation(buyer, store, monkeypatch):
     store.tables['users'][USER_A]['role'] = 'admin'
     def execute(self, sql, params=()):
-        if sql.startswith('INSERT INTO public.products'):
-            name, description, price, stock = params
-            uid = uuid4()
+        if sql.startswith('INSERT INTO products'):
+            uid, name, description, price, stock = params
             row = dict(id=uid, name=name, description=description, price=price, stock=stock)
             store.tables['products'][uid] = row
             return SimpleNamespace(fetchone=lambda: row)
-        if sql.startswith('UPDATE public.products'):
+        if sql.startswith('UPDATE products'):
             name, description, price, stock, uid = params
             row = store.tables['products'].get(uid)
             if row:
                 row.update(name=name, description=description, price=price, stock=stock)
             return SimpleNamespace(fetchone=lambda: row)
-        if sql.startswith('SELECT * FROM public.orders'):
+        if sql.startswith('SELECT * FROM orders'):
             return SimpleNamespace(fetchall=lambda: [])
         raise AssertionError(sql)
     monkeypatch.setattr(MemoryConnection, 'execute', execute)
