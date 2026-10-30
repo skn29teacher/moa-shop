@@ -1,10 +1,9 @@
 from urllib.parse import urlsplit
 
-from fastapi import Request
-from starlette.responses import JSONResponse
+from flask import current_app, jsonify, request
 
 
-def request_origin(request: Request) -> str | None:
+def request_origin() -> str | None:
     # Origin이 있으면 Referer로 우회하지 않습니다. Origin:null도 거부됩니다.
     origin = request.headers.get("origin")
     if origin is not None:
@@ -19,15 +18,16 @@ def request_origin(request: Request) -> str | None:
         return None
 
 
-async def enforce_same_origin(request: Request, call_next):
+def enforce_same_origin():
     if request.method in {"POST", "PUT", "PATCH", "DELETE"}:
-        expected = request.app.state.settings.app_origin
+        expected = current_app.config["settings"].app_origin
         if (
             request.headers.get("sec-fetch-site") == "cross-site"
-            or request_origin(request) != expected
+            or request_origin() != expected
         ):
-            return JSONResponse(
-                status_code=403,
-                content={"detail": "요청 출처를 확인할 수 없습니다. 같은 사이트에서 다시 요청하세요."},
+            return (
+                jsonify(
+                    detail="요청 출처를 확인할 수 없습니다. 같은 사이트에서 다시 요청하세요."
+                ),
+                403,
             )
-    return await call_next(request)

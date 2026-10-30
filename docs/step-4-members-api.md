@@ -1,3 +1,5 @@
+> 이 문서는 이전 단계의 기록입니다. 현재 Supabase Auth 인증·서버 세션·권한·DB 전환은 [로컬 인증 테스트 안내](local-auth-testing.md)를 기준으로 확인하세요.
+
 # STEP 4 — 회원정보·구매내역 API
 
 모든 경로는 로그인 쿠키가 필요합니다. 회원 응답에는 비밀번호 해시와 탈퇴 시각을 포함하지 않습니다.
@@ -43,7 +45,7 @@
 
 ## 확인 방법
 
-서버 실행 후 `http://127.0.0.1:8000/docs`에서 로그인한 뒤 위 경로를 호출합니다. 기본 테스트는 `C:\AI4`에서 다음 명령으로 실행할 수 있습니다.
+서버 실행 후 쇼핑몰 화면 또는 API 클라이언트에서 로그인한 뒤 위 경로를 호출합니다. 기본 테스트는 `C:\AI4`에서 다음 명령으로 실행할 수 있습니다.
 
 ```powershell
 & 'C:\AI4\.venv\Scripts\python.exe' -m pytest -c .\Day12-Demo\project\pytest.ini .\Day12-Demo\project\tests -m "not integration" -q

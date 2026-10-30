@@ -2,7 +2,7 @@
 
 ## 화면과 API 연결
 
-페이지는 `/#/` 아래 해시 경로로 이동합니다. HTML은 FastAPI가 `/`에서 제공하고, CSS와 JavaScript는 `/static`에서 제공합니다.
+페이지는 `/#/` 아래 해시 경로로 이동합니다. HTML은 Flask가 `/`에서 제공하고, CSS와 JavaScript는 `/static`에서 제공합니다.
 
 | 화면 | 주소 | 연결 API |
 | --- | --- | --- |
@@ -20,10 +20,11 @@
 
 ## 실행
 
-PowerShell에서 `C:\AI4`에 있을 때 서버를 실행하고 `http://127.0.0.1:8000/`을 엽니다.
+PowerShell에서 프로젝트 폴더로 이동한 뒤 서버를 실행하고 `http://127.0.0.1:8000/`을 엽니다.
 
 ```powershell
-uvicorn app.main:app --app-dir .\Day12-Demo\project --reload --reload-dir .\Day12-Demo\project\app --host 127.0.0.1 --port 8000
+Set-Location 'C:\AI4\Day12-Demo\project'
+python -m flask --app wsgi:application run --debug --no-reload --host 127.0.0.1 --port 8000
 ```
 
 ## 브라우저 확인 체크리스트

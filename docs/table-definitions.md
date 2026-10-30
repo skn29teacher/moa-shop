@@ -1,3 +1,5 @@
+> 이 문서는 이전 단계의 기록입니다. 현재 Supabase Auth 인증·서버 세션·권한·DB 전환은 [로컬 인증 테스트 안내](local-auth-testing.md)를 기준으로 확인하세요.
+
 # 테이블 정의서
 
 [ERD](erd.md) · [구매 시뮬레이션](purchase-simulation.md) · [schema.sql](../sql/schema.sql) · [seed.sql](../sql/seed.sql)
@@ -115,7 +117,7 @@ DB 제약은 잘못된 상태·수량·음수 재고·중복 성공을 막습니
 
 별도 세션 테이블이 필요 없는 **JWT + HttpOnly 쿠키**를 선택합니다. 비밀번호 해시, 로그아웃, 탈퇴 확인, CSRF 방어는 후속 단계에서 구현합니다.
 
-FastAPI만 서버 전용 PostgreSQL 연결로 접근합니다. SQL은 모든 테이블에 RLS를 적용하고 anon·authenticated 권한을 회수합니다. RLS 우회 서버 역할의 소유권 검증은 FastAPI가 담당합니다. 연결 비밀은 환경변수로 관리합니다.
+Flask WSGI 앱만 서버 전용 PostgreSQL 연결로 접근합니다. SQL은 모든 테이블에 RLS를 적용하고 anon·authenticated 권한을 회수합니다. RLS 우회 서버 역할의 소유권 검증은 앱이 담당합니다. 연결 비밀은 환경변수로 관리합니다.
 
 ## 사용자 확인 방법
 

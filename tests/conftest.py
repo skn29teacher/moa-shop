@@ -1,14 +1,14 @@
 import pytest
-from fastapi.testclient import TestClient
 
 from app import main
 from app.core import dependencies
 from app.core.config import Settings
-from app.core.security import hash_password
+from tests.legacy_security import hash_password
 from app.db import commerce, products, users
 from app.services import auth, cart, orders, payments
 from tests.memory import MemoryPool, MemoryRepository, MemoryStore
-from tests.support import ORIGIN, PASSWORD, authorize
+from tests.fake_auth import FakeAuth, install_sessions
+from tests.support import FlaskTestResponse, ORIGIN, PASSWORD, authorize
 
 
 @pytest.fixture(scope="session")
@@ -22,7 +22,7 @@ def settings():
     return Settings(
         _env_file=None, app_origin=ORIGIN, database_url="postgresql://test@invalid/test_only",
         secret_key="pytest-only-secret-" * 4, cookie_secure=False,
-        access_token_expire_minutes=60, supabase_url=None, supabase_key=None,
+        supabase_url="https://auth.invalid", supabase_key="test-anon-key",
     )
 
 
@@ -34,10 +34,12 @@ def store(monkeypatch, password_hash):
         for name in vars(module).copy():
             if not name.startswith("_") and hasattr(repo, name):
                 monkeypatch.setattr(module, name, getattr(repo, name))
-    # from ... import 형태로 가져간 경계도 함께 교체합니다.
-    monkeypatch.setattr(auth, "find_user_by_email", repo.find_user_by_email)
-    monkeypatch.setattr(auth, "insert_user", repo.insert_user)
-    monkeypatch.setattr(dependencies, "find_user_by_id", repo.find_user_by_id)
+    for user in store.tables['users'].values():
+        user['auth_user_id'] = user['id']
+        user['role'] = 'customer'
+    monkeypatch.setattr(users, 'find_user_by_auth_id', lambda c, uid: next(
+        (u for u in store.tables['users'].values() if u['auth_user_id'] == uid), None))
+    install_sessions(monkeypatch, store)
     for module in (cart, orders, payments):
         monkeypatch.setattr(module, "lock_products", repo.lock_products)
     monkeypatch.setattr(payments, "decrease_stock", repo.decrease_stock)
@@ -51,10 +53,15 @@ def pool(store):
 
 @pytest.fixture
 def client(monkeypatch, settings, pool):
-    monkeypatch.setattr(main, "get_settings", lambda: settings)
-    monkeypatch.setattr(main, "create_pool", lambda _: pool)
-    with TestClient(main.app, base_url=ORIGIN, headers={"Origin": ORIGIN}) as client:
-        yield client
+    app = main.create_app(settings=settings, pool=pool)
+    app.config["auth_provider_factory"] = lambda settings: FakeAuth(pool.store)
+    app.response_class = FlaskTestResponse
+    client = app.test_client()
+    client.environ_base.update(
+        HTTP_HOST="127.0.0.1:8000",
+        HTTP_ORIGIN=ORIGIN,
+    )
+    yield client
 
 
 @pytest.fixture

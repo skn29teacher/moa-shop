@@ -1,38 +1,39 @@
-from fastapi import APIRouter, Request, Response, status
+from flask import Blueprint, current_app
+from flask import Response
 
-from app.core.dependencies import DatabaseConnection
-from app.core.security import clear_auth_cookie, create_access_token, set_auth_cookie
+from app.core.http import json_response, request_body
+from app.core.security import clear_auth_cookie, set_auth_cookie
+from app.db.connection import get_connection
 from app.schemas.auth import LoginRequest, LoginResponse, SignupRequest, UserResponse
 from app.services import auth as auth_service
+from app.services import sessions
 
 
-router = APIRouter(prefix="/api/auth", tags=["인증"])
+router = Blueprint("auth", __name__, url_prefix="/api/auth")
 
 
-@router.post("/signup", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-def signup(payload: SignupRequest, connection: DatabaseConnection):
+@router.post("/signup")
+def signup():
     """회원가입만 처리합니다. 가입 후 로그인 API를 호출하세요."""
-    return auth_service.signup(connection, payload)
+    payload = request_body(SignupRequest)
+    return auth_service.signup(get_connection(), payload), 202
 
 
-@router.post("/login", response_model=LoginResponse)
-def login(
-    payload: LoginRequest,
-    request: Request,
-    response: Response,
-    connection: DatabaseConnection,
-):
-    user = auth_service.login(connection, payload)
-    settings = request.app.state.settings
-    token = create_access_token(user["id"], settings)
+@router.post("/login")
+def login():
+    payload = request_body(LoginRequest)
+    user, token = auth_service.login(get_connection(), payload)
+    settings = current_app.config["settings"]
+    response, status_code = json_response(
+        LoginResponse(user=UserResponse.model_validate(user)), LoginResponse
+    )
     set_auth_cookie(response, token, settings)
-    # JWT는 본문에 넣지 않고 HttpOnly 쿠키로만 전달합니다.
-    return LoginResponse(user=UserResponse.model_validate(user))
+    return response, status_code
 
 
-@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT, response_class=Response)
-def logout(request: Request):
-    """미로그인 상태에서도 같은 결과를 반환하고 브라우저 인증 쿠키를 제거합니다."""
-    response = Response(status_code=status.HTTP_204_NO_CONTENT)
-    clear_auth_cookie(response, request.app.state.settings)
+@router.post("/logout")
+def logout():
+    sessions.end(get_connection())
+    response = Response(status=204)
+    clear_auth_cookie(response, current_app.config["settings"])
     return response

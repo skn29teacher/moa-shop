@@ -1,8 +1,8 @@
 from uuid import UUID
 
-from fastapi import HTTPException
 from psycopg import Connection
 
+from app.core.errors import HTTPException
 from app.db import commerce as db
 from app.db.products import lock_products
 from app.services.commerce_common import cart_snapshot, lock_active_member, require_amount, require_stock

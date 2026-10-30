@@ -1,52 +1,53 @@
-from fastapi import APIRouter, Request, Response, status
+from flask import Blueprint, Response, current_app
 
-from app.core.dependencies import CurrentUser, DatabaseConnection
+from app.core.dependencies import get_current_user
+from app.core.http import json_response, request_body
 from app.core.security import clear_auth_cookie
+from app.db.connection import get_connection
 from app.schemas.auth import UserResponse
 from app.schemas.members import PasswordChangeRequest, ProfileUpdateRequest
 from app.schemas.orders import OrderResponse
 from app.services import members as service
 
 
-router = APIRouter(prefix="/api/members/me", tags=["회원정보·구매내역"])
+router = Blueprint("members", __name__, url_prefix="/api/members/me")
 
 
-@router.get("", response_model=UserResponse)
-def get_profile(user: CurrentUser):
-    return service.get_profile(user)
+@router.get("")
+def get_profile():
+    user = get_current_user()
+    return json_response(service.get_profile(user), UserResponse)
 
 
-@router.patch("", response_model=UserResponse)
-def update_profile(
-    payload: ProfileUpdateRequest,
-    user: CurrentUser,
-    connection: DatabaseConnection,
-):
-    return service.update_profile(connection, user["id"], payload)
+@router.patch("")
+def update_profile():
+    user = get_current_user()
+    payload = request_body(ProfileUpdateRequest)
+    result = service.update_profile(get_connection(), user["id"], payload)
+    return json_response(result, UserResponse)
 
 
-@router.put("/password", status_code=status.HTTP_204_NO_CONTENT, response_class=Response)
-def change_password(
-    payload: PasswordChangeRequest,
-    user: CurrentUser,
-    connection: DatabaseConnection,
-):
-    service.change_password(connection, user["id"], payload)
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
-
-
-@router.delete("", status_code=status.HTTP_204_NO_CONTENT, response_class=Response)
-def delete_member(
-    request: Request,
-    user: CurrentUser,
-    connection: DatabaseConnection,
-):
-    service.delete_member(connection, user["id"])
-    response = Response(status_code=status.HTTP_204_NO_CONTENT)
-    clear_auth_cookie(response, request.app.state.settings)
+@router.put("/password")
+def change_password():
+    user = get_current_user()
+    payload = request_body(PasswordChangeRequest)
+    service.change_password(get_connection(), user["id"], payload)
+    response = Response(status=204)
+    clear_auth_cookie(response, current_app.config["settings"])
     return response
 
 
-@router.get("/orders", response_model=list[OrderResponse])
-def list_purchase_history(user: CurrentUser, connection: DatabaseConnection):
-    return service.list_purchase_history(connection, user["id"])
+@router.delete("")
+def delete_member():
+    user = get_current_user()
+    service.delete_member(get_connection(), user["id"])
+    response = Response(status=204)
+    clear_auth_cookie(response, current_app.config["settings"])
+    return response
+
+
+@router.get("/orders")
+def list_purchase_history():
+    user = get_current_user()
+    result = service.list_purchase_history(get_connection(), user["id"])
+    return json_response(result, list[OrderResponse])

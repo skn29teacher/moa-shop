@@ -25,20 +25,20 @@
 | app/db/connection.py | autocommit 연결과 서비스별 명시적 트랜잭션 사용 |
 | app/main.py | 새 라우터 등록·버전 갱신 |
 | README.md | API 목록·현재 단계·실행 안내 갱신 |
-| docs/step-3-shopping.md | Swagger 호출 순서·기대 결과 |
+| docs/step-3-shopping.md | API 호출 순서·기대 결과 |
 
 기존 SQL 테이블·환경변수·requirements.txt는 변경하지 않았습니다. 상품 조회를 제외한 새 API는 로그인 쿠키가 필요합니다. 다른 회원의 주문은 404로 응답합니다.
 
 ## 2. 실행 방법
 
-이미 사용 중인 `C:\AI4\.venv` 등 가상환경이 활성화된 PowerShell에서 실행하세요. 기존 Uvicorn이 실행 중이면 --reload가 변경을 반영합니다. 수동 재시작이 필요하면 기존 프로세스를 Ctrl+C로 종료한 뒤 실행합니다.
+이미 사용 중인 가상환경이 활성화된 PowerShell에서 Flask 개발 서버를 실행합니다. 코드 변경을 반영하려면 서버를 재시작합니다.
 
 ```powershell
-Set-Location 'C:\AI4'
-python -m uvicorn app.main:app --app-dir .\Day12-Demo\project --reload --reload-dir .\Day12-Demo\project\app --host 127.0.0.1 --port 8000
+Set-Location 'C:\AI4\Day12-Demo\project'
+python -m flask --app wsgi:application run --debug --no-reload --host 127.0.0.1 --port 8000
 ```
 
-[Swagger](http://127.0.0.1:8000/docs)를 새로고침하고 상품·장바구니·주문·모의 결제 그룹을 확인합니다. APP_ORIGIN과 같은 주소를 사용해야 합니다. 새 라이브러리 설치나 schema.sql 재실행은 필요하지 않습니다.
+`http://127.0.0.1:8000/`에서 화면을 확인하거나 API 클라이언트에서 API를 호출합니다. 변경 요청은 `Origin` 헤더가 APP_ORIGIN과 일치해야 합니다.
 
 ## 3. API 목록
 
@@ -56,7 +56,7 @@ python -m uvicorn app.main:app --app-dir .\Day12-Demo\project --reload --reload-
 
 상품 목록의 limit 기본값은 20, 최대 100이고 offset 기본값은 0입니다. 모든 금액은 정수 원입니다. 장바구니/주문 items에는 product_id·product_name·quantity·unit_price·line_amount가 있으며, 장바구니 items에는 현재 stock도 포함됩니다.
 
-## 4. Swagger 기본 구매 시나리오
+## 4. API 기본 구매 시나리오
 
 아래 상품 UUID는 STEP 1 seed.sql의 베이직 반팔 티셔츠입니다. seed를 넣지 않았다면 목록에서 실제 상품 UUID를 복사해서 사용하세요. 상품이 하나도 없다면 seed.sql은 사용자가 직접 실행합니다.
 
@@ -81,7 +81,7 @@ POST /api/auth/login에서 STEP 2에 가입한 계정으로 로그인합니다.
 }
 ```
 
-본인이 다른 비밀번호로 가입했다면 그 값을 사용합니다. 같은 브라우저가 HttpOnly 쿠키를 보냅니다. Swagger Authorize에 쿠키 값을 복사하지 않습니다.
+본인이 다른 비밀번호로 가입했다면 그 값을 사용합니다. 로그인 응답의 HttpOnly 쿠키를 API 클라이언트가 유지하도록 설정합니다.
 
 ### ③ 빈 장바구니 확인
 

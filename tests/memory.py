@@ -19,6 +19,10 @@ class MemoryStore:
         self.commits = 0
         self.rollbacks = 0
 
+    @property
+    def sessions(self):
+        return self.tables["sessions"]
+
     def connect(self):
         return MemoryConnection(self)
 

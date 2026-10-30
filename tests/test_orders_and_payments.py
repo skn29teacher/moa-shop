@@ -169,6 +169,22 @@ def test_payment_rejects_invalid_request_body_without_writes(buyer, store, body)
     assert snapshot(store) == before
 
 
+@pytest.mark.parametrize(
+    "data,content_type",
+    [("{", "application/json"), ("", "application/json"), ("", None)],
+)
+def test_payment_rejects_missing_or_malformed_json(buyer, store, data, content_type):
+    order = buy_now(buyer, P1, 1).json()
+    before = snapshot(store)
+    response = buyer.post(
+        f"/api/orders/{order['id']}/payments",
+        data=data,
+        content_type=content_type,
+    )
+    assert response.status_code == 422
+    assert snapshot(store) == before
+
+
 def test_payment_detects_order_amount_corruption(buyer, store):
     order = buy_now(buyer, P1, 1).json()
     store.tables["orders"][UUID(order["id"])]["total_amount"] += 1

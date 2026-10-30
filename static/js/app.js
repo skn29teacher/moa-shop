@@ -1,4 +1,4 @@
-/* FastAPI JSON API와 통신하는 순수 브라우저 JavaScript입니다. */
+/* Flask JSON API와 통신하는 순수 브라우저 JavaScript입니다. */
 const root = document.querySelector("#app");
 const nav = document.querySelector("#site-nav");
 const menuToggle = document.querySelector("#menu-toggle");
@@ -77,6 +77,7 @@ function showToast(message) {
 
 function updateNavigation() {
   guestLink.hidden = Boolean(signedInUser);
+  document.querySelector("[data-admin-link]").hidden = signedInUser?.role !== "admin";
   logoutButton.hidden = !signedInUser;
   logoutButton.textContent = signedInUser ? `${signedInUser.name} · 로그아웃` : "로그아웃";
 }
@@ -355,9 +356,12 @@ async function renderAccount() {
       await api("/api/members/me/password", requestOptions("PUT", {
         current_password: data.get("current_password"), new_password: data.get("new_password"),
       }));
-      event.currentTarget.reset();
+      root.querySelector("#password-form").reset();
       showFormError("password-error", "");
-      showToast("비밀번호를 변경했습니다.");
+      signedInUser = null;
+      updateNavigation();
+      showToast("비밀번호를 변경했습니다. 다시 로그인해 주세요.");
+      window.location.hash = "#/login";
     } catch (error) { showFormError("password-error", error.message); }
   });
   root.querySelector("#delete-account").addEventListener("click", async () => {
@@ -413,16 +417,55 @@ function renderSignup() {
     const button = event.currentTarget.querySelector("button[type=submit]");
     button.disabled = true;
     try {
-      await api("/api/auth/signup", requestOptions("POST", {
+      const result = await api("/api/auth/signup", requestOptions("POST", {
         name: data.get("name"), email: data.get("email"), password: data.get("password"),
         phone: data.get("phone") || null, address: data.get("address") || null,
       }));
-      showToast("가입이 완료되었습니다. 로그인해 주세요.");
+      showToast(result.message);
       window.location.hash = "#/login";
     } catch (error) {
       showFormError("signup-error", error.message);
       button.disabled = false;
     }
+  });
+}
+
+async function renderAdmin() {
+  // The orders request enforces the server's current role before rendering controls.
+  const orders = await api('/api/admin/orders?limit=100');
+  const products = await api('/api/products?limit=100');
+  root.innerHTML = `${pageHeader('ADMIN', '상품·주문 관리', '상품 가격과 재고를 관리하고 고객 주문을 확인하세요.')}
+    <section class="form-card"><h2 class="panel-title">상품 등록 / 수정</h2>
+    <form id="admin-product-form">
+      <div class="field"><label for="admin-product">수정할 상품</label><select id="admin-product"><option value="">새 상품 등록</option>${products.items.map(p => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.name)}</option>`).join('')}</select></div>
+      <div class="field"><label for="admin-name">상품명</label><input id="admin-name" name="name" maxlength="200" required></div>
+      <div class="field"><label for="admin-description">설명</label><textarea id="admin-description" name="description" maxlength="5000"></textarea></div>
+      <div class="field"><label for="admin-price">가격 (원)</label><input id="admin-price" name="price" type="number" min="1" max="999999999999" step="1" required></div>
+      <div class="field"><label for="admin-stock">재고</label><input id="admin-stock" name="stock" type="number" min="0" max="2147483647" step="1" required></div>
+      <p id="admin-error" class="form-error" role="alert"></p><button class="button" type="submit">저장</button>
+    </form></section>
+    <section class="panel" style="margin-top:24px"><h2 class="panel-title">최근 주문 (최대 100건)</h2>
+    ${orders.length ? orders.map(order => `<article class="cart-item"><div><h3>${escapeHtml(order.recipient_name)} · ${escapeHtml(order.status)}</h3><p>${escapeHtml(order.id)}</p><p>${escapeHtml(order.recipient_phone)} · ${escapeHtml(order.shipping_address)}</p><p>${order.items.map(i => `${escapeHtml(i.product_name)} × ${Number(i.quantity)}`).join(', ')}</p></div><strong>${won(order.total_amount)}</strong></article>`).join('') : '<p>주문이 없습니다.</p>'}</section>`;
+  const form = root.querySelector('#admin-product-form');
+  const select = root.querySelector('#admin-product');
+  select.addEventListener('change', () => {
+    const product = products.items.find(p => p.id === select.value);
+    for (const key of ['name', 'description', 'price', 'stock']) form.elements[key].value = product?.[key] ?? '';
+  });
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const data = new FormData(form);
+    const button = form.querySelector('button[type="submit"]');
+    button.disabled = true;
+    try {
+      const id = select.value;
+      await api(`/api/admin/products${id ? '/' + encodeURIComponent(id) : ''}`, requestOptions(id ? 'PUT' : 'POST', {
+        name: data.get('name'), description: data.get('description'), price: Number(data.get('price')), stock: Number(data.get('stock')),
+      }));
+      showToast('상품을 저장했습니다.');
+      await renderAdmin();
+    } catch (error) { showFormError('admin-error', error.message); }
+    finally { button.disabled = false; }
   });
 }
 
@@ -449,6 +492,7 @@ async function renderRoute() {
     else if (pathname === "/payment") await renderPayment(query);
     else if (pathname === "/account") await renderAccount();
     else if (pathname === "/orders") await renderOrders();
+    else if (pathname === "/admin") await renderAdmin();
     else root.innerHTML = errorPanel("요청한 화면을 찾을 수 없습니다.");
     root.focus({ preventScroll: true });
   } catch (error) {
@@ -480,4 +524,11 @@ logoutButton.addEventListener("click", async () => {
 });
 
 window.addEventListener("hashchange", renderRoute);
+// Email confirmation establishes the email identity; login still goes through the server.
+// Remove Supabase's implicit-flow fragments without persisting tokens in the browser.
+if (/^#(?:access_token|error)=/.test(window.location.hash)) {
+  const failed = window.location.hash.startsWith("#error=");
+  window.history.replaceState(null, "", window.location.pathname + (failed ? "#/login" : "#/products"));
+  showToast(failed ? "이메일 인증 링크를 확인해 주세요." : "이메일 인증을 확인했습니다. 로그인 후 서비스를 이용할 수 있습니다.");
+}
 refreshUser().finally(renderRoute);

@@ -1,40 +1,23 @@
-from fastapi import HTTPException, status
-from psycopg import Connection
-from psycopg.errors import UniqueViolation
+from uuid import UUID
 
-from app.core.security import dummy_password_hash, hash_password, verify_password
-from app.db.users import find_user_by_email, insert_user
-from app.schemas.auth import LoginRequest, SignupRequest
-
-
-def signup(connection: Connection, payload: SignupRequest) -> dict:
-    try:
-        # UNIQUE 제약으로 동시 회원가입에서도 이메일 중복을 차단합니다.
-        # 응답을 만들기 전에 커밋까지 완료해 저장 실패를 성공으로 응답하지 않습니다.
-        with connection.transaction():
-            return insert_user(
-                connection,
-                email=str(payload.email),
-                password_hash=hash_password(payload.password.get_secret_value()),
-                name=payload.name,
-                phone=payload.phone,
-                address=payload.address,
-            )
-    except UniqueViolation:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="이미 사용 중인 이메일입니다.",
-        ) from None
+from app.core.errors import HTTPException
+from app.core.supabase_auth import provider
+from app.db import users
+from app.services import sessions
 
 
-def login(connection: Connection, payload: LoginRequest) -> dict:
-    user = find_user_by_email(connection, str(payload.email))
-    candidate_hash = user["password_hash"] if user else dummy_password_hash
-    valid_password = verify_password(payload.password.get_secret_value(), candidate_hash)
-    # 이메일 존재 여부와 탈퇴 여부를 로그인 실패 메시지로 구분하지 않습니다.
-    if not user or not valid_password or user["deleted_at"] is not None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="이메일 또는 비밀번호가 올바르지 않습니다.",
-        )
-    return user
+def signup(connection, payload):
+    result = provider().signup(payload)
+    if result.get('access_token'):
+        provider().logout(result['access_token'])
+    return {'message': '가입 요청을 접수했습니다. 이메일 인증이 필요한 경우 메일의 인증 링크를 누른 뒤 로그인하세요.'}
+
+
+def login(connection, payload):
+    result = provider().login(str(payload.email), payload.password.get_secret_value())
+    user = users.find_user_by_auth_id(connection, UUID(result['user']['id']))
+    if not user or user['deleted_at'] is not None:
+        provider().logout(result['access_token'])
+        raise HTTPException(status_code=401, detail='사용 가능한 쇼핑몰 회원 정보가 없습니다. 기존 회원은 관리자에게 계정 연결을 요청하세요.')
+    sessions.end(connection)
+    return user, sessions.start(connection, user, result)

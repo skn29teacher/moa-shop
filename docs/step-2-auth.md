@@ -1,3 +1,5 @@
+> 이 문서는 이전 단계의 기록입니다. 현재 Supabase Auth 인증·서버 세션·권한·DB 전환은 [로컬 인증 테스트 안내](local-auth-testing.md)를 기준으로 확인하세요.
+
 # STEP 2 — 기본 구조·DB 연결·인증 API
 
 [README](../README.md) · [환경변수 예시](../.env.example) · [테이블 정의서](table-definitions.md)
@@ -6,11 +8,11 @@
 
 | 파일 | 역할 |
 | --- | --- |
-| app/main.py | 앱 생명주기, DB 풀 시작·종료, 정적 경로, 오류 응답 |
+| app/main.py | Flask 앱 생성, DB 풀 연결, 정적 경로, 오류 응답 |
 | app/core/config.py | 프로젝트 .env 로드·설정 검증 |
 | app/core/security.py | Argon2 해시, JWT 발급·검증, HttpOnly 쿠키 |
 | app/core/csrf.py | 변경 요청 출처 검증 |
-| app/core/dependencies.py | DB·로그인 회원 의존성, 탈퇴 계정 거부 |
+| app/core/dependencies.py | DB·로그인 회원 조회, 탈퇴 계정 거부 |
 | app/db/connection.py | Supabase PostgreSQL 연결 풀, 트랜잭션 반환 |
 | app/db/users.py | 회원 조회·INSERT, SQL 매개변수 바인딩 |
 | app/schemas/auth.py | 회원가입·로그인 Pydantic 입력 검증, 공개 응답 모델 |
@@ -56,17 +58,17 @@ Copy-Item -LiteralPath .\Day12-Demo\project\.env.example -Destination .\Day12-De
 `Day12-Demo\project\.env`를 저장한 뒤 `C:\AI4`에서 실행합니다.
 
 ```powershell
-Set-Location 'C:\AI4'
-.\Day12-Demo\project\.venv\Scripts\python.exe -m uvicorn app.main:app --app-dir .\Day12-Demo\project --reload --reload-dir .\Day12-Demo\project\app --host 127.0.0.1 --port 8000
+Set-Location 'C:\AI4\Day12-Demo\project'
+.\.venv\Scripts\python.exe -m flask --app wsgi:application run --debug --no-reload --host 127.0.0.1 --port 8000
 ```
 
-`--app-dir`는 Python이 app 패키지를 찾을 위치이며, `--reload-dir`는 변경 감시 폴더입니다. .env와 정적 파일 경로는 이미 프로젝트 절대 경로로 계산하므로 Python 코드 수정은 필요하지 않습니다.
+프로젝트 루트에서 실행하면 `.env`와 정적 파일은 프로젝트 절대 경로로 찾습니다.
 
-브라우저에서 [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)를 엽니다. APP_ORIGIN이 127.0.0.1이면 localhost로 접속하지 않습니다.
+브라우저에서 [http://127.0.0.1:8000/](http://127.0.0.1:8000/)을 엽니다. APP_ORIGIN이 127.0.0.1이면 localhost로 접속하지 않습니다. Flask는 자동 `/docs` API 문서를 제공하지 않으므로 아래 요청 예시를 API 클라이언트로 호출하거나 화면을 이용합니다.
 
-## 4. Swagger 확인 시나리오
+## 4. API 확인 시나리오
 
-각 API를 펼쳐 **Try it out → JSON 입력 → Execute** 순서로 호출합니다. Authorize에 JWT를 복사할 필요 없이 같은 브라우저가 쿠키를 관리합니다.
+아래 경로와 JSON 요청 예시를 API 클라이언트에서 호출합니다. 변경 요청은 같은 출처 검증을 위해 `Origin: http://127.0.0.1:8000` 헤더를 포함하고, 로그인 후에는 응답의 HttpOnly 쿠키를 유지해야 합니다.
 
 ### 회원가입
 
@@ -117,7 +119,7 @@ POST /api/auth/logout을 호출합니다. 본문 입력 없이 Execute를 누르
 2. Pydantic이 이메일·비밀번호·이름·연락처 입력을 검증하고 필요한 값만 정규화합니다.
 3. 가입은 Argon2 해시와 회원 정보를 저장해 커밋한 뒤 201, 로그인은 해시·탈퇴 여부를 검사한 뒤 200과 쿠키를 반환합니다.
 4. 로그아웃은 같은 이름·경로의 쿠키를 만료시켜 204를 반환합니다.
-5. 보호 API에 사용할 get_current_user는 JWT 검증 후 DB 회원 존재·탈퇴 여부를 확인합니다. 실제 보호 기능은 후속 단계에 연결합니다.
+5. 보호 API는 요청 쿠키의 JWT를 검증한 뒤 DB에서 회원 존재·탈퇴 여부를 확인하고 연결을 해제합니다.
 
 ## 6. 오류별 확인 방법
 
@@ -131,13 +133,13 @@ POST /api/auth/logout을 호출합니다. 본문 입력 없이 Execute를 누르
 | 401 | 이메일·비밀번호와 deleted_at 확인 |
 | 503 | 실행 중 DB 연결을 사용할 수 없음, Supabase 연결 상태 확인 |
 
-Origin 검증은 가입·로그인·로그아웃 모두 적용합니다. Swagger는 같은 출처에서 호출하세요. 별도 API 클라이언트로 호출할 경우 `Origin: http://127.0.0.1:8000`을 명시합니다. Origin과 Referer가 모두 없으면 403입니다.
+Origin 검증은 가입·로그인·로그아웃 모두 적용합니다. API 클라이언트로 호출할 경우 `Origin: http://127.0.0.1:8000`을 명시합니다. Origin과 Referer가 모두 없으면 403입니다.
 
 에러를 공유할 때 응답 상태·detail 또는 서버의 마지막 오류를 알려주세요. .env, 실제 비밀번호, 쿠키/JWT, DB URI 전체는 보내지 마세요.
 
 ## 7. 사용자 확인 체크리스트
 
-- [ ] /docs가 열린다. O/X
+- [ ] `/`에서 쇼핑몰 화면이 열린다. O/X
 - [ ] 회원가입 201, users에 새 회원이 보인다. O/X
 - [ ] password_hash가 원문이 아닌 Argon2 해시다. O/X
 - [ ] 같은 이메일 가입은 409다. O/X
@@ -157,7 +159,7 @@ Origin 검증은 가입·로그인·로그아웃 모두 적용합니다. Swagger
 
 ## 참고 문서
 
-- [FastAPI 비밀번호 해시·JWT](https://fastapi.tiangolo.com/tutorial/security/oauth2-jwt/)
+- [Flask 배포 문서](https://flask.palletsprojects.com/en/stable/deploying/)
 - [Psycopg 연결 풀](https://www.psycopg.org/psycopg3/docs/advanced/pool.html)
 - [Pydantic 설정 관리](https://docs.pydantic.dev/latest/concepts/pydantic_settings/)
 - [Supabase PostgreSQL 연결](https://supabase.com/docs/guides/database/connecting-to-postgres)

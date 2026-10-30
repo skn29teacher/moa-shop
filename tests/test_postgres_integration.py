@@ -6,15 +6,18 @@ from contextlib import contextmanager
 from uuid import uuid4
 
 import pytest
-from fastapi.testclient import TestClient
 from psycopg import connect
 from psycopg.rows import dict_row
 from psycopg_pool import ConnectionPool
 
 from app import main
 from app.core.config import Settings
-from app.core.security import hash_password
-from tests.support import ORIGIN, PASSWORD, SHIPPING, add, buy_now, checkout, pay
+from tests.legacy_security import hash_password
+from tests.fake_auth import FakeAuth
+from types import SimpleNamespace
+from tests.support import (
+    FlaskTestResponse, ORIGIN, PASSWORD, SHIPPING, add, buy_now, checkout, pay,
+)
 
 
 CONFIRMATION = "I_WILL_USE_A_DEDICATED_TEST_DATABASE"
@@ -65,7 +68,7 @@ def _schema_statements(schema_sql, schema):
 
 
 @pytest.fixture
-def postgres_client(monkeypatch):
+def postgres_client():
     # 의도적으로 프로젝트 .env를 전혀 읽지 않습니다. 전용 DB를 별도 환경변수로 지정해야 합니다.
     database_url = os.environ.get("TEST_DATABASE_URL")
     if os.environ.get("RUN_DB_INTEGRATION_TESTS") != "1":
@@ -85,12 +88,22 @@ def postgres_client(monkeypatch):
         for statement in _schema_statements(schema_sql, schema):
             admin.execute(statement)
 
+        # Apply the table portion of the auth migration in an isolated generic PG schema.
+        # auth.users trigger/FK are verified separately against a Supabase test project.
+        migration = (main.PROJECT_ROOT / "sql" / "auth-migration.sql").read_text(encoding="utf-8")
+        migration = migration.split("-- Only profile fields")[0]
+        migration = migration.replace(" REFERENCES auth.users(id) ON DELETE RESTRICT", "")
+        migration = re.sub(r"REVOKE ALL ON public.auth_sessions FROM PUBLIC, anon, authenticated;", "", migration)
+        for statement in _schema_statements(migration, schema):
+            admin.execute(statement)
+
         app_settings = Settings(
             _env_file=None,
             app_origin=ORIGIN,
             database_url=database_url,
             secret_key="postgres-integration-test-secret-" * 2,
             cookie_secure=False,
+            supabase_url="https://auth.invalid", supabase_key="test-anon-key",
         )
         pool = ConnectionPool(
             conninfo=database_url,
@@ -102,20 +115,32 @@ def postgres_client(monkeypatch):
                     "connect_timeout": 5, "prepare_threshold": None},
         )
         scoped_pool = ScopedPool(pool, schema)
-        monkeypatch.setattr(main, "get_settings", lambda: app_settings)
-        monkeypatch.setattr(main, "create_pool", lambda _: scoped_pool)
-        with TestClient(main.app, base_url=ORIGIN, headers={"Origin": ORIGIN}) as client:
+        app = main.create_app(settings=app_settings, pool=scoped_pool)
+        app.response_class = FlaskTestResponse
+        client = app.test_client()
+        client.environ_base.update(
+            HTTP_HOST="127.0.0.1:8000",
+            HTTP_ORIGIN=ORIGIN,
+        )
+        try:
             with pool.connection() as connection:
                 user_id = uuid4()
                 connection.execute(
-                    f'INSERT INTO "{schema}".users (id,email,password_hash,name) VALUES (%s,%s,%s,%s)',
-                    (user_id, "buyer@example.com", hash_password(PASSWORD), "통합 테스트 회원"),
+                    f'INSERT INTO "{schema}".users (id,auth_user_id,email,password_hash,name) VALUES (%s,%s,%s,%s,%s)',
+                    (user_id, user_id, "buyer@example.com", hash_password(PASSWORD), "통합 테스트 회원"),
                 )
                 connection.execute(
                     f'INSERT INTO "{schema}".products (id,name,description,price,stock) VALUES (%s,%s,%s,%s,%s)',
                     (uuid4(), "통합 테스트 상품", "", 19000, 4),
                 )
+            fake_store = SimpleNamespace(tokens={}, tables={'users': {user_id: {
+                'id': user_id, 'auth_user_id': user_id, 'email': 'buyer@example.com',
+                'password_hash': hash_password(PASSWORD),
+            }}})
+            app.config['auth_provider_factory'] = lambda settings: FakeAuth(fake_store)
             yield client
+        finally:
+            client.close()
     finally:
         if pool is not None:
             pool.close()

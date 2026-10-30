@@ -19,12 +19,11 @@ class Settings(BaseSettings):
 
     app_origin: str = "http://127.0.0.1:8000"
     database_url: SecretStr
-    # 직접 SQL 연결에서는 사용하지 않으며, 로그에 키가 노출되지 않게 합니다.
     supabase_url: str | None = None
     supabase_key: SecretStr | None = None
     secret_key: SecretStr
-    access_token_expire_minutes: int = Field(default=60, ge=5, le=1440)
     cookie_secure: bool = False
+    session_days: int = Field(default=7, ge=1, le=30)
 
     @field_validator("app_origin")
     @classmethod

@@ -1,3 +1,5 @@
+> 이 문서는 이전 단계의 기록입니다. 현재 Supabase Auth 인증·서버 세션·권한·DB 전환은 [로컬 인증 테스트 안내](local-auth-testing.md)를 기준으로 확인하세요.
+
 # 모아샵 (Moa Shop) — 쇼핑몰 MVP
 
 > **한 줄 소개**  
@@ -36,15 +38,15 @@
 | 영역 | 기술 | 맡은 역할 |
 | --- | --- | --- |
 | 개발 환경 | VS Code, Python 3.11+ | 코드 작성과 로컬 실행 |
-| 웹 서버 | FastAPI, Uvicorn | JSON API와 HTML·정적 파일 제공 |
+| 웹 서버 | Flask, WSGI | JSON API와 HTML·정적 파일 제공, PythonAnywhere 배포 |
 | 입력·응답 검증 | Pydantic 2 | API 요청값 검증과 응답 형식 지정 |
 | DB 연결 | Psycopg 3, connection pool | PostgreSQL 연결, 매개변수 바인딩 SQL, 트랜잭션 |
 | 데이터베이스 | Supabase PostgreSQL | 회원·상품·주문·주문상품·결제 저장 |
 | 인증 | JWT(HS256), HttpOnly 쿠키 | 로그인 상태 전달 |
 | 비밀번호 | Argon2id (`pwdlib`) | 비밀번호 원문 대신 단방향 해시 보관 |
 | 프론트엔드 | HTML, CSS, Vanilla JavaScript | 화면 구성, 반응형 스타일, `fetch` API 요청 |
-| 배포 목표 | Render | FastAPI 앱 실행과 환경변수 설정 |
-| 테스트 | pytest, httpx | API·서비스 동작 검증 |
+| 배포 목표 | PythonAnywhere | WSGI 앱 실행과 환경변수 설정 |
+| 테스트 | pytest, Flask test client | API·서비스 동작 검증 |
 
 ### 요청이 처리되는 길
 
@@ -52,7 +54,7 @@
 브라우저 HTML/CSS/JS
         │ fetch + HttpOnly 쿠키
         ▼
-FastAPI Router ── Pydantic Schema
+Flask Blueprint ── Pydantic Schema
         │
         ▼
 Service (업무 규칙·트랜잭션)
@@ -277,7 +279,7 @@ sequenceDiagram
     autonumber
     actor Buyer as 구매자
     participant Browser as 브라우저
-    participant API as FastAPI
+    participant API as Flask
     participant Auth as 인증·업무 서비스
     participant DB as Supabase PostgreSQL
 
@@ -379,12 +381,12 @@ sequenceDiagram
 | 단계 | 만든 것 | 진행 |
 | --- | --- | --- |
 | STEP 1 | ERD, 테이블 정의, 스키마·샘플 상품 SQL | 완료 |
-| STEP 2 | FastAPI 기본 구조, Supabase 연결, 인증 API | 완료 |
+| STEP 2 | Flask 기본 구조, Supabase 연결, 인증 API | 완료 |
 | STEP 3 | 상품·장바구니·주문·모의 결제 API와 재고 처리 | 완료 |
 | STEP 4 | 회원정보 수정·비밀번호 변경·탈퇴·구매내역 API | 완료 |
 | STEP 5 | 상품·로그인·장바구니·주문·회원 화면, 반응형 CSS | 화면 작성 완료, 사용자 브라우저 확인 대기 |
 | STEP 6 | 인증이 필요한 화면의 로그인 이동과 원래 화면 복귀 | 예정 |
-| STEP 7 | Render 설정, 환경변수·배포 안내 | 예정 |
+| STEP 7 | PythonAnywhere WSGI 설정, 환경변수·배포 안내 | 완료 |
 
 **테스트 기록:** 사용자가 보고한 백엔드 pytest 결과는 `88 passed, 1 deselected`입니다. 프론트엔드 화면은 STEP 5 작성 이후 브라우저 확인을 기다리고 있습니다.
 
@@ -392,14 +394,15 @@ sequenceDiagram
 
 ## 🧪 직접 실행할 때
 
-PowerShell `C:\AI4`에서 FastAPI를 실행합니다.
+PowerShell에서 프로젝트 폴더로 이동해 Flask 개발 서버를 실행합니다.
 
 ```powershell
-uvicorn app.main:app --app-dir .\Day12-Demo\project --reload --reload-dir .\Day12-Demo\project\app --host 127.0.0.1 --port 8000
+Set-Location 'C:\AI4\Day12-Demo\project'
+python -m flask --app wsgi:application run --debug --no-reload --host 127.0.0.1 --port 8000
 ```
 
 - 쇼핑몰: `http://127.0.0.1:8000/`
-- Swagger: `http://127.0.0.1:8000/docs`
+- API 문서는 자동 생성하지 않습니다. 쇼핑몰 화면 또는 API 클라이언트를 사용하세요.
 - 반응형 확인 폭: 360px / 768px / 1200px
 
 ---

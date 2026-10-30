@@ -1,8 +1,8 @@
 from uuid import UUID
 
-from fastapi import HTTPException
 from psycopg import Connection
 
+from app.core.errors import HTTPException
 from app.db import products as db
 
 

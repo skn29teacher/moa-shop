@@ -48,6 +48,7 @@ class SignupRequest(LoginRequest):
 class UserResponse(BaseModel):
     # password_hash나 deleted_at은 응답으로 내보내지 않습니다.
     id: UUID
+    role: str = "customer"
     email: EmailStr
     name: str
     phone: str | None

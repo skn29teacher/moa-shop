@@ -2,9 +2,9 @@ from copy import deepcopy
 from datetime import datetime, timezone
 from uuid import UUID
 
-from fastapi.testclient import TestClient
+from flask import Response
 
-from app.core.security import AUTH_COOKIE_NAME, create_access_token
+from app.core.security import AUTH_COOKIE_NAME
 
 
 ORIGIN = "http://127.0.0.1:8000"
@@ -45,9 +45,27 @@ def seed_rows(password_hash):
     return dict(users=users, products=products, orders={}, items={}, payments={})
 
 
-def authorize(client: TestClient, settings, user_id=USER_A):
-    client.cookies.clear()
-    client.cookies.set(AUTH_COOKIE_NAME, create_access_token(user_id, settings))
+class FlaskTestResponse(Response):
+    def json(self):
+        return self.get_json()
+
+    @property
+    def content(self):
+        return self.get_data()
+
+
+def authorize(client, settings, user_id=USER_A):
+    client.delete_cookie(AUTH_COOKIE_NAME, domain="localhost")
+    from app.services.sessions import start
+    with client.application.app_context():
+        with client.application.config["db_pool"].connection() as connection:
+            tokens = client.application.config["auth_provider_factory"](settings).issue(user_id)
+            token = start(connection, {"id": user_id}, tokens)
+    client.set_cookie(
+        AUTH_COOKIE_NAME,
+        token,
+        domain="localhost",
+    )
     return client
 
 

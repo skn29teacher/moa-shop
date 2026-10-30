@@ -1,10 +1,11 @@
 from uuid import UUID
 
-from fastapi import HTTPException, status
 from psycopg import Connection
 
-from app.core.security import authentication_error, hash_password, verify_password
-from app.db import commerce, users
+from app.core.errors import HTTPException
+from app.core.security import authentication_error
+from app.db import commerce, sessions, users
+from app.core.supabase_auth import provider
 from app.schemas.members import PasswordChangeRequest, ProfileUpdateRequest
 from app.services.commerce_common import lock_active_member, order_snapshot
 
@@ -34,28 +35,32 @@ def update_profile(
         return result
 
 
-def change_password(
-    connection: Connection, user_id: UUID, payload: PasswordChangeRequest
-) -> None:
-    with connection.transaction():
-        member = users.find_password_hash_for_update(connection, user_id)
-        if member is None or member["deleted_at"] is not None:
+def change_password(connection, user_id, payload) -> None:
+    user = users.find_user_by_id(connection, user_id)
+    # Verify current password with Supabase, never with the legacy users hash.
+    try:
+        verified = provider().login(user['email'], payload.current_password.get_secret_value())
+    except HTTPException as exc:
+        if exc.status_code == 401:
+            raise HTTPException(status_code=400, detail="현재 비밀번호가 올바르지 않습니다.") from None
+        raise
+    try:
+        if UUID(verified['user']['id']) != user['auth_user_id']:
             raise authentication_error()
-        if not verify_password(payload.current_password.get_secret_value(), member["password_hash"]):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="현재 비밀번호가 올바르지 않습니다.",
-            )
-        updated = users.update_password_hash(
-            connection, user_id, hash_password(payload.new_password.get_secret_value())
-        )
-        if not updated:
-            raise authentication_error()
+        provider().password(verified['access_token'], payload.new_password.get_secret_value())
+        with connection.transaction():
+            sessions.delete_user(connection, user_id)
+    finally:
+        try:
+            provider().logout(verified['access_token'])
+        except HTTPException:
+            pass
 
 
 def delete_member(connection: Connection, user_id: UUID) -> None:
     with connection.transaction():
         lock_active_member(connection, user_id)
+        sessions.delete_user(connection, user_id)
         if not users.soft_delete_user(connection, user_id):
             raise authentication_error()
 
