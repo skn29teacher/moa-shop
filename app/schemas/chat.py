@@ -1,4 +1,5 @@
 from typing import Literal
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -17,9 +18,13 @@ class ChatMessage(BaseModel):
 class ChatRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     messages: list[ChatMessage] = Field(min_length=1, max_length=11)
+    conversation_id: UUID | None = None
+    revision: int | None = Field(default=None, ge=1, strict=True)
 
     @model_validator(mode="after")
     def check_conversation(self):
+        if (self.conversation_id is None) != (self.revision is None):
+            raise ValueError('기존 대화 ID와 revision을 함께 입력하세요.')
         if sum(len(message.content) for message in self.messages) > 12000:
             raise ValueError("대화는 총 12,000자 이하여야 합니다.")
         if len(self.messages) % 2 != 1 or any(

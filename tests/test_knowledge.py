@@ -5,6 +5,7 @@ import pytest
 from pydantic import SecretStr
 
 from app.services import chat, knowledge
+from tests.test_sqlite_integration import sqlite_app, sign_in
 
 
 @pytest.fixture
@@ -114,7 +115,9 @@ def test_symlink_cannot_read_outside_folder(document_dir, tmp_path):
     assert knowledge.load_documents()[1] == []
 
 
-def test_api_injects_evidence_and_returns_only_source_metadata(client, settings, monkeypatch):
+def test_api_injects_evidence_and_returns_only_source_metadata(sqlite_app, monkeypatch):
+    client = sign_in(sqlite_app)
+    settings = sqlite_app.config['settings']
     settings.groq_api_key = SecretStr("fake")
     folder = knowledge.KNOWLEDGE_DIR
     folder.mkdir()

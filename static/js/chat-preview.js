@@ -1,4 +1,4 @@
-/* Groq-backed chat. Conversation is held in memory for this screen only. */
+/* Authenticated Groq chat with at most ten user-owned conversations. */
 function chatIcon(name, className = "") {
   const paths = {
     sparkle: '<path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5L12 3Z"/>',
@@ -20,6 +20,11 @@ function chatIcon(name, className = "") {
 }
 
 function renderChatPreview() {
+  if (!signedInUser) {
+    renderProtectedError(new ApiError("로그인이 필요합니다.", 401));
+    root.querySelector('a[href="#/login"]').href = "#/login?next=chat";
+    return;
+  }
   const suggestions = [
     ["bag", "취향에 맞는 상품 찾기", "나에게 어울리는 일상의 아이템", "데일리로 쓰기 좋은 가방을 추천해 줘"],
     ["gift", "마음을 담은 선물 고르기", "받는 사람도, 주는 사람도 기쁘게", "친구에게 줄 5만 원대 선물을 찾고 있어"],
@@ -50,7 +55,7 @@ function renderChatPreview() {
     </section></div>`;
 
   const input = root.querySelector("#chat-prompt");
-  root.querySelector("#chat-privacy-note").firstChild.textContent = "질문·최근 대화·공개 상품 정보·검색된 참고 문서가 Groq로 전송됩니다. 개인정보는 입력하지 마세요.";
+  root.querySelector("#chat-privacy-note").textContent = "질문·최근 대화·공개 상품 정보·검색된 참고 문서가 Groq로 전송됩니다. 대화는 계정별 최대 10개까지 저장되며 직접 삭제할 수 있습니다. 개인정보는 입력하지 마세요.";
   const workspace = root.querySelector(".chat-workspace");
   const stage = root.querySelector(".chat-stage");
   const welcome = root.querySelector("#chat-welcome");
@@ -67,6 +72,14 @@ function renderChatPreview() {
   conversation.hidden = true;
   stage.append(conversation);
   let history = [];
+  let conversationId = null;
+  let revision = null;
+  let savedCount = 0;
+  const savedList = document.createElement("div");
+  savedList.id = "saved-chat-list";
+  root.querySelector(".chat-history").append(savedList);
+  const sectionLabel = root.querySelector(".chat-section-label");
+  sectionLabel.textContent = "내 대화 (0/10)";
   let pending = false;
   let controller = null;
   let generation = 0;
@@ -107,6 +120,8 @@ function renderChatPreview() {
     generation += 1;
     controller?.abort();
     history = [];
+    conversationId = null;
+    revision = null;
     pending = false;
     input.disabled = false;
     send.disabled = !configured;
@@ -131,11 +146,77 @@ function renderChatPreview() {
   };
   root.querySelectorAll("[data-prompt]").forEach(button => button.addEventListener("click", () => { input.value = button.dataset.prompt; input.focus(); }));
   root.querySelectorAll("[data-chat-example]").forEach(button => button.addEventListener("click", () => showExample(true)));
-  root.querySelectorAll("[data-chat-home], .chat-new").forEach(button => button.addEventListener("click", () => { reset(); showExample(false); }));
+  root.querySelectorAll("[data-chat-home], .chat-new").forEach(button => button.addEventListener("click", () => {
+    if (savedCount >= 10) { showToast("대화는 최대 10개입니다. 기존 대화를 삭제한 뒤 시작하세요."); return; }
+    reset(); showExample(false);
+  }));
   root.querySelector(".chat-sidebar-toggle").addEventListener("click", () => setSidebar(true));
   root.querySelectorAll(".chat-sidebar-close, .chat-backdrop").forEach(button => button.addEventListener("click", () => setSidebar(false)));
   root.querySelector(".chat-workspace").addEventListener("keydown", event => { if (event.key === "Escape") { setSidebar(false); root.querySelector(".chat-sidebar-toggle").focus(); } });
-  const ready = api("/api/chat/status").then(status => {
+  const handleError = error => {
+    if (!root.contains(workspace)) return;
+    if (error.statusCode === 401) {
+      signedInUser = null;
+      updateNavigation();
+      reset();
+      renderProtectedError(error);
+      root.querySelector('a[href="#/login"]').href = "#/login?next=chat";
+      return;
+    }
+    errorNote.textContent = error.message;
+    errorNote.hidden = false;
+  };
+  const refreshConversations = async () => {
+    const result = await api("/api/chat/conversations");
+    if (!root.contains(workspace)) return;
+    savedCount = result.items.length;
+    sectionLabel.textContent = `내 대화 (${savedCount}/10)`;
+    savedList.replaceChildren();
+    result.items.forEach(item => {
+      const row = document.createElement("div");
+      row.className = "chat-saved-row";
+      const open = document.createElement("button");
+      open.type = "button";
+      open.className = "chat-history-item";
+      open.classList.toggle("active", item.id === conversationId);
+      open.textContent = item.title;
+      open.title = item.title;
+      open.addEventListener("click", async () => {
+        if (pending) { showToast("답변이 끝난 뒤 대화를 열어 주세요."); return; }
+        reset();
+        const viewGeneration = ++generation;
+        try {
+          const detail = await api(`/api/chat/conversations/${encodeURIComponent(item.id)}`);
+          if (viewGeneration !== generation || !root.contains(workspace)) return;
+          conversationId = detail.id;
+          revision = detail.revision;
+          history = detail.messages.map(message => ({ role: message.role, content: message.content }));
+          detail.messages.forEach(message => messageNode(message.role, message.content, message.sources || []));
+          showExample(false);
+          await refreshConversations();
+        } catch (error) { handleError(error); }
+      });
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "chat-icon-button";
+      remove.textContent = "×";
+      remove.setAttribute("aria-label", `${item.title} 대화 삭제`);
+      remove.addEventListener("click", async () => {
+        if (pending) { showToast("답변이 끝난 뒤 삭제해 주세요."); return; }
+        if (!window.confirm(`“${item.title}” 대화를 삭제할까요?`)) return;
+        remove.disabled = true;
+        try {
+          await api(`/api/chat/conversations/${encodeURIComponent(item.id)}`, { method: "DELETE" });
+          if (!root.contains(workspace)) return;
+          if (conversationId === item.id) { reset(); showExample(false); }
+          await refreshConversations();
+        } catch (error) { handleError(error); remove.disabled = false; }
+      });
+      row.append(open, remove);
+      savedList.append(row);
+    });
+  };
+  const ready = api("/api/chat/status").then(async status => {
     if (!root.contains(workspace)) return;
     configured = status.configured;
     connection.textContent = configured ? "Groq · 연결 설정됨" : "API 키 설정 필요";
@@ -145,11 +226,8 @@ function renderChatPreview() {
       errorNote.textContent = "AI 연결 전입니다. 서버에 GROQ_API_KEY를 설정한 뒤 재시작하세요. 대화 예시는 바로 확인할 수 있어요.";
       errorNote.hidden = false;
     }
-  }).catch(() => {
-    connection.textContent = "연결 상태 확인 실패";
-    errorNote.textContent = "서버 연결 상태를 확인하지 못했습니다. 화면을 새로고침해 주세요.";
-    errorNote.hidden = false;
-  });
+    await refreshConversations();
+  }).catch(handleError);
   form.addEventListener("submit", async event => {
     event.preventDefault();
     await ready;
@@ -157,9 +235,7 @@ function renderChatPreview() {
     if (pending || !configured || !prompt || !root.contains(workspace)) return;
     if (prompt.length > 2000) { showToast("질문은 2,000자 이하로 입력해 주세요."); return; }
     const requestGeneration = ++generation;
-    const previous = history.slice(-10);
-    while (previous.length && previous.reduce((total, item) => total + item.content.length, 0) + prompt.length > 12000) previous.splice(0, 2);
-    const messages = [...previous, { role: "user", content: prompt }];
+    const messages = [{ role: "user", content: prompt }];
     welcome.hidden = true;
     examplePanel.hidden = true;
     conversation.hidden = false;
@@ -177,18 +253,21 @@ function renderChatPreview() {
     const requestController = controller;
     const timeout = setTimeout(() => requestController.abort(), 35000);
     try {
-      const result = await api("/api/chat", { ...requestOptions("POST", { messages }), signal: requestController.signal });
+      const result = await api("/api/chat", { ...requestOptions("POST", { messages, conversation_id: conversationId, revision }), signal: requestController.signal });
       if (requestGeneration !== generation || !root.contains(workspace)) return;
       waitingNode.remove();
       messageNode("assistant", result.reply, result.sources || []);
-      history = [...messages, { role: "assistant", content: result.reply }];
+      history = [...history, ...messages, { role: "assistant", content: result.reply }];
+      conversationId = result.conversation_id;
+      revision = result.revision;
       input.value = "";
+      await refreshConversations().catch(handleError);
     } catch (error) {
       if (requestGeneration !== generation || !root.contains(workspace)) return;
       waitingNode.remove();
       userNode.remove();
-      errorNote.textContent = error.name === "AbortError" ? "응답 대기 시간이 초과되었습니다. 질문을 다시 전송해 주세요." : error.message;
-      errorNote.hidden = false;
+      if (error.name === "AbortError") error.message = "응답 대기 시간이 초과되었습니다. 대화 목록을 확인한 뒤 다시 시도해 주세요.";
+      handleError(error);
     } finally {
       clearTimeout(timeout);
       if (requestGeneration === generation && root.contains(workspace)) {

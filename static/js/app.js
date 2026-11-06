@@ -377,6 +377,7 @@ async function renderAccount() {
 }
 
 function renderLogin() {
+  const returnToChat = routeInfo().query.get("next") === "chat";
   root.innerHTML = `<section class="form-card"><div class="form-header"><p class="eyebrow">WELCOME BACK</p><h1 class="page-title">로그인</h1><p class="page-copy">로그인하고 편리하게 주문을 관리하세요.</p></div>
     <form id="login-form"><div class="field"><label for="login-email">이메일</label><input id="login-email" name="email" type="email" required maxlength="254" autocomplete="email"></div>
       <div class="field"><label for="login-password">비밀번호</label><input id="login-password" name="password" type="password" required maxlength="128" autocomplete="current-password"></div>
@@ -394,7 +395,7 @@ function renderLogin() {
       signedInUser = result.user;
       updateNavigation();
       showToast("로그인되었습니다.");
-      window.location.hash = "#/products";
+      window.location.hash = returnToChat ? "#/chat" : "#/products";
     } catch (error) {
       showFormError("login-error", error.message);
       button.disabled = false;

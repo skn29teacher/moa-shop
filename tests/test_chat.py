@@ -6,6 +6,17 @@ import pytest
 from pydantic import SecretStr
 
 from app.services import chat
+from tests.test_sqlite_integration import sqlite_app, sign_in
+
+
+@pytest.fixture
+def client(sqlite_app):
+    return sign_in(sqlite_app)
+
+
+@pytest.fixture
+def settings(sqlite_app):
+    return sqlite_app.config['settings']
 
 
 @pytest.fixture
@@ -47,7 +58,7 @@ def test_real_http_boundary_sends_public_catalog_and_preserves_history(enabled, 
     assert request.full_url == "https://api.groq.com/openai/v1/chat/completions"
     assert request.get_header("Authorization") == "Bearer test-secret-never-expose"
     assert timeout == settings.groq_timeout_seconds
-    assert payload["messages"][1:] == messages
+    assert payload["messages"][1:] == [messages[-1]]
     assert "가방" in payload["messages"][0]["content"]
     assert "15000" in payload["messages"][0]["content"]
     assert "buyer@example.com" not in request.data.decode()

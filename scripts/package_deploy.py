@@ -5,7 +5,8 @@ from zipfile import ZIP_DEFLATED, ZipFile
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "dist" / "moashop-sqlite-deploy.zip"
-ROOT_FILES = ("wsgi.py", "requirements.txt", ".env.example", "sql/schema.sql", "sql/seed.sql")
+ROOT_FILES = ("wsgi.py", "requirements.txt", ".env.example", "sql/schema.sql", "sql/seed.sql",
+              "sql/migrations/002_chat_history.sql")
 FOLDERS = ("app", "templates", "static", "knowledge")
 EXCLUDED_SUFFIXES = {".pyc", ".pyo", ".zip", ".db", ".sqlite", ".sqlite3",
                      ".gguf", ".safetensors", ".pt", ".pth", ".onnx", ".bin"}

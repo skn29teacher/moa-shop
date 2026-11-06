@@ -19,6 +19,11 @@
 .chat-history-item { display: flex; align-items: center; gap: 9px; width: 100%; padding: 13px 11px; border: 0; border-radius: 8px; background: transparent; color: #71796b; text-align: left; font-size: 12px; line-height: 1.5; }
 .chat-history-item .chat-icon { width: 16px; height: 16px; }
 .chat-history-item.active { background: #e8eddf; color: #35553b; font-weight: 600; }
+.chat-saved-row { display: flex; align-items: center; min-width: 0; }
+.chat-sidebar { overflow-y: auto; }
+.chat-history { flex-shrink: 0; }
+.chat-saved-row .chat-history-item { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+.chat-saved-row > .chat-icon-button { flex-shrink: 0; }
 .chat-example-label { margin-left: auto; font-size: 9px; color: #92998c; white-space: nowrap; }
 .chat-sidebar-bottom { margin-top: auto; padding-top: 48px; }
 .chat-discovery { padding: 20px 15px; border: 1px solid #e2e6d9; border-radius: 12px; background: #eef1e6; }

@@ -9,7 +9,7 @@ from app.core.config import PROJECT_ROOT, Settings
 
 
 ID_COLUMNS = {"id", "auth_user_id", "user_id", "order_id", "product_id"}
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 
 def dict_row(cursor, values):
@@ -78,8 +78,19 @@ class SQLiteDatabase:
                     if statement.strip():
                         raise RuntimeError("Incomplete SQLite schema statement.")
                     connection.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
-                elif version != SCHEMA_VERSION:
+                elif version not in (1, SCHEMA_VERSION):
                     raise RuntimeError("지원하지 않는 SQLite 스키마 버전입니다.")
+                if version in (0, 1):
+                    migration = (PROJECT_ROOT / 'sql/migrations/002_chat_history.sql').read_text(encoding='utf-8')
+                    statement = ''
+                    for line in migration.splitlines(keepends=True):
+                        statement += line
+                        if sqlite3.complete_statement(statement):
+                            connection.execute(statement)
+                            statement = ''
+                    if statement.strip():
+                        raise RuntimeError('Incomplete chat migration statement.')
+                    connection.execute(f'PRAGMA user_version = {SCHEMA_VERSION}')
 
     @contextmanager
     def connection(self):

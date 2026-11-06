@@ -1,4 +1,5 @@
--- SQLite schema v1. Applied atomically by SQLiteDatabase.open(), not Supabase SQL Editor.
+-- Base SQLite schema v1. SQLiteDatabase.open() also applies migrations up to v2.
+-- Applied atomically by the app, not Supabase SQL Editor.
 -- UUIDs are generated in Python. All timestamps are UTC ISO-8601 strings; money is integer KRW.
 CREATE TABLE users (
     id TEXT PRIMARY KEY NOT NULL,

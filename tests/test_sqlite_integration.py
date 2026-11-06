@@ -24,7 +24,9 @@ from tests.support import (
 
 
 @pytest.fixture
-def sqlite_app(tmp_path, password_hash):
+def sqlite_app(tmp_path, password_hash, monkeypatch):
+    from app.services import knowledge
+    monkeypatch.setattr(knowledge, 'KNOWLEDGE_DIR', tmp_path / 'knowledge')
     settings = Settings(
         _env_file=None, database_path=tmp_path / 'shop.sqlite3', app_origin=ORIGIN,
         secret_key='sqlite-test-only-secret-' * 3,
