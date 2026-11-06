@@ -24,6 +24,12 @@ class Settings(BaseSettings):
     secret_key: SecretStr
     cookie_secure: bool = False
     session_days: int = Field(default=7, ge=1, le=30)
+    groq_api_key: SecretStr | None = None
+    groq_model: str = Field(default="openai/gpt-oss-20b", min_length=1, max_length=200)
+    groq_timeout_seconds: int = Field(default=25, ge=1, le=60)
+    groq_max_completion_tokens: int = Field(default=1024, ge=64, le=2048)
+    chat_requests_per_minute: int = Field(default=10, ge=1, le=100)
+    chat_requests_per_day: int = Field(default=100, ge=1, le=10000)
 
     @field_validator("app_origin")
     @classmethod

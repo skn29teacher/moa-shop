@@ -11,6 +11,39 @@ from app.db.connection import get_connection
 
 
 def register_commands(app):
+    @app.cli.command('check-chat-docs')
+    @click.option('--query', default=None, help='Search locally without calling Groq.')
+    def check_chat_docs(query):
+        """List loaded knowledge files and matching passages; no external API call."""
+        from app.services.knowledge import load_documents, search_documents
+        passages, files, skipped = load_documents()
+        click.echo(f'AI 참고 문서: {len(files)}개, 검색 구간: {len(passages)}개')
+        for name in files:
+            click.echo(f'  읽기 성공: {name}')
+        for name, reason in skipped:
+            click.echo(f'  건너뜀: {name} ({reason})')
+        if query:
+            matches = search_documents([{'role': 'user', 'content': query}])
+            click.echo(f'검색 결과: {len(matches)}개')
+            for match in matches:
+                click.echo(f'  [{match["id"]}] {match["file"]} (L{match["start_line"]}–L{match["end_line"]})')
+
+    @app.cli.command('check-groq')
+    @click.option('--generate', is_flag=True, help='Send one Korean test prompt (uses Groq quota).')
+    def check_groq(generate):
+        """Check key, HTTPS and configured model; optionally generate one answer."""
+        from app.services.chat import GroqChat
+        settings = app.config['settings']
+        groq = GroqChat(settings)
+        try:
+            groq.check()
+            click.echo(f'Groq HTTPS 연결 및 모델 확인 성공: {settings.groq_model}')
+            if generate:
+                result = groq.complete([{'role': 'user', 'content': '안녕하세요. 한 문장으로 자기소개해 주세요.'}], [])
+                click.echo(result['reply'])
+        except HTTPException as exc:
+            raise click.ClickException(f'Groq 확인 실패 ({exc.status_code}): {exc.detail}') from None
+
     @app.cli.command('init-db')
     def init_db():
         """Verify the initialized SQLite schema. Never resets existing data."""

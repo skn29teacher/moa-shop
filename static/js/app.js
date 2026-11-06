@@ -92,7 +92,7 @@ async function refreshUser() {
 }
 
 function routeInfo() {
-  const hash = window.location.hash.slice(1) || "/products";
+  const hash = window.location.hash.slice(1) || "/chat";
   const separator = hash.indexOf("?");
   const pathname = separator < 0 ? hash : hash.slice(0, separator);
   const query = new URLSearchParams(separator < 0 ? "" : hash.slice(separator + 1));
@@ -479,11 +479,17 @@ function renderProtectedError(error) {
 
 async function renderRoute() {
   const { pathname, query } = routeInfo();
+  document.body.classList.toggle("chat-page", pathname === "/chat");
+  nav.querySelectorAll("a").forEach(link => {
+    if (link.getAttribute("href") === `#${pathname}`) link.setAttribute("aria-current", "page");
+    else link.removeAttribute("aria-current");
+  });
   nav.classList.remove("open");
   menuToggle.setAttribute("aria-expanded", "false");
   root.innerHTML = `<div class="loading-state">화면을 불러오고 있습니다…</div>`;
   try {
-    if (pathname === "/products") await renderProducts();
+    if (pathname === "/chat") renderChatPreview();
+    else if (pathname === "/products") await renderProducts();
     else if (/^\/products\/[^/]+$/.test(pathname)) await renderProductDetail(decodeURIComponent(pathname.split("/")[2]));
     else if (pathname === "/login") renderLogin();
     else if (pathname === "/signup") renderSignup();

@@ -1,6 +1,6 @@
 # 현재 코드 구조와 데이터 흐름
 
-현재 구현은 Flask WSGI 서버, 순수 HTML·CSS·JavaScript 화면, SQLite 쇼핑몰 DB, Supabase Auth HTTPS 연동으로 구성됩니다. 인증의 상세 설명은 [AUTH.md](AUTH.md), 서버 배포는 [DEPLOYMENT.md](DEPLOYMENT.md)에 있습니다.
+기준일: 2026-11-06. 현재 구현은 Flask WSGI 서버, HTML·CSS·JavaScript 화면, SQLite 쇼핑몰 DB, Supabase Auth 및 Groq HTTPS 연동으로 구성됩니다. 인증은 [AUTH.md](AUTH.md), AI 채팅은 [GROQ_CHAT.md](GROQ_CHAT.md), 서버 배포는 [DEPLOYMENT.md](DEPLOYMENT.md)를 참고하세요.
 
 ## 1. 폴더 구조
 
@@ -9,7 +9,7 @@ project/
 ├─ wsgi.py                    # application = create_app()
 ├─ app/
 │  ├─ main.py                 # 설정·DB 초기화, 라우터, HTML·오류·캐시 처리
-│  ├─ cli.py                  # DB 확인, 샘플 상품, 역할 변경, Auth 연결 점검
+│  ├─ cli.py                  # DB·Auth·Groq·AI 문서 점검, 샘플 상품, 역할 변경
 │  ├─ core/
 │  │  ├─ config.py            # 프로젝트 기준 .env와 환경변수 검증
 │  │  ├─ supabase_auth.py     # Supabase Auth REST 요청
@@ -18,16 +18,22 @@ project/
 │  │  ├─ csrf.py              # Origin/Referer 확인
 │  │  ├─ http.py              # JSON 요청 검증과 응답 직렬화
 │  │  └─ errors.py            # 앱의 HTTP/검증 예외
-│  ├─ routers/                # auth, members, products, cart, orders, payments, admin
+│  ├─ routers/                # auth, members, products, cart, orders, payments, admin, chat
 │  ├─ schemas/                # Pydantic 입력·출력 모델
 │  ├─ services/               # 인증·세션·회원·상품·장바구니·주문·결제 로직
+│  │  ├─ chat.py             # 시스템 지시문, Groq HTTPS 호출, 응답·한도 처리
+│  │  └─ knowledge.py        # knowledge 폴더 읽기, 문서 구간 검색·출처
 │  └─ db/                     # SQLite 연결과 users/products/commerce/sessions SQL
 ├─ templates/index.html       # 공통 HTML과 스크립트 로딩
 ├─ static/
-│  ├─ css/app.css
+│  ├─ css/                   # app.css, chat.css
+│  ├─ vendor/markdown-it/    # 로컬 마크다운 라이브러리와 MIT 라이선스
 │  └─ js/
 │     ├─ auth-confirmation.js # 인증 결과 URL 정리
-│     └─ app.js               # 화면 라우팅과 fetch API 호출
+│     ├─ app.js               # 화면 라우팅과 fetch API 호출
+│     ├─ chat-preview.js      # 실제 채팅·가상 예시·참고 문서 표시
+│     └─ chat-markdown.js     # 원시 HTML·이미지를 제한한 AI 답변 렌더링
+├─ knowledge/                 # AI에 제공할 공개 .md·.txt; 일반 docs와 분리
 ├─ sql/schema.sql             # 현재 SQLite 스키마 v1
 ├─ sql/seed.sql               # 같은 ID를 덮어쓰지 않는 샘플 상품
 ├─ instance/shop.sqlite3      # 실행 시 생성하는 DB 파일; Git 제외
@@ -112,6 +118,8 @@ erDiagram
 | POST | /api/auth/logout | 현재 앱 세션 폐기 204 |
 | GET | /api/products | 공개 목록; limit/offset |
 | GET | /api/products/{product_id} | 공개 상세 |
+| GET | /api/chat/status | 키 설정 여부와 설정 모델; 외부 연결 검사는 하지 않음 |
+| POST | /api/chat | 비회원도 사용 가능한 AI 채팅; Origin·입력·데모 요청 제한 적용 |
 | GET | /api/cart | 본인 장바구니 |
 | POST | /api/cart/items | 본인 상품 담기 |
 | PATCH / DELETE | /api/cart/items/{product_id} | 본인 수량 변경 / 항목 제거 |
@@ -130,6 +138,33 @@ erDiagram
 
 ## 7. 화면과 운영 명령
 
-`static/js/app.js`는 `#/products`, `#/login`, `#/signup`, `#/cart`, `#/checkout`, `#/payment`, `#/account`, `#/orders`, `#/admin`의 hash 라우팅을 사용합니다. fetch는 same-origin 쿠키를 전송합니다. 관리자 메뉴 숨김은 사용 편의를 위한 표시이며 실제 권한 차단은 API가 수행합니다.
+`static/js/app.js`는 기본 화면 `#/chat`과 `#/products`, `#/login`, `#/signup`, `#/cart`, `#/checkout`, `#/payment`, `#/account`, `#/orders`, `#/admin`의 hash 라우팅을 사용합니다. fetch는 same-origin 쿠키를 전송합니다. 관리자 메뉴 숨김은 사용 편의를 위한 표시이며 실제 권한 차단은 API가 수행합니다.
 
 `init-db`는 DB 확인, `seed-demo`는 반복 가능한 샘플 상품 입력, `check-auth`는 Auth 설정 HTTPS 조회, `set-role`은 서버 측 역할 변경입니다. 명령의 실제 예시는 [배포](DEPLOYMENT.md)와 [로컬 테스트](LOCAL_TESTING.md) 문서에서 제공합니다.
+
+`check-groq`는 키·HTTPS·설정 모델의 목록 존재 여부를 확인하고, `--generate`를 추가하면 실제 답변 1건을 생성합니다. `check-chat-docs`는 읽은 문서와 제외 사유를 보여주며 `--query`로 문서 검색을 시험합니다. 문서 점검은 Groq를 호출하지 않습니다.
+
+## 8. AI 채팅과 문서 검색
+
+```mermaid
+flowchart TD
+    Chat[채팅 화면] --> API[POST /api/chat]
+    API --> Guard[Origin·메시지 검증·워커별 요청 제한]
+    Guard --> Catalog[SQLite 공개 상품 최대 30개]
+    Guard --> Search[knowledge .md·.txt 검색]
+    Catalog --> Context[시스템 지시문 + 상품 + 관련 문서 + 최근 대화]
+    Search --> Context
+    Context --> Groq[Groq Chat Completions HTTPS API]
+    Groq --> Result[reply·model·sources]
+    Result --> Render[마크다운 답변 + 검색된 참고 파일·행 범위]
+```
+
+`services/chat.py::SYSTEM_PROMPT`가 역할·말투·근거 우선순위·작업 범위를 정합니다. 가격·재고는 DB 상품 목록을 우선하고, 정책은 검색된 문서의 명시된 사실만 답하도록 지시합니다. 상품명·문서 내용은 행동 지시가 아닌 자료로 취급합니다. 문서 근거가 없으면 확인할 수 없다고 안내하며, 문서가 충돌하면 임의로 정책을 선택하지 않도록 지시합니다. 모델 출력의 사실성을 강제로 검증하는 장치는 아니므로 오답 가능성은 남습니다.
+
+`knowledge.py`는 매 질문마다 전용 폴더의 UTF-8 `.md`·`.txt`를 읽습니다. 질문 단어·한국어 두 글자 조합과 최근 사용자 질문을 활용하는 단순 검색이며 벡터 DB·임베딩 API는 없습니다. 파일 최대 50개, 파일당 128KiB·전체 1MiB, 구간 약 1,200자, 검색 결과 최대 4개로 제한합니다. README·예시·숨김 경로·심볼릭 링크는 제외합니다. 자세한 관리법은 [knowledge 안내](../knowledge/README.md)에 있습니다.
+
+일반 `docs/`, `.env`, 회원·주소·주문 데이터는 AI 검색 대상이 아닙니다. 공개 상품 ID·이름·가격·재고와 검색된 문서 구간이 최근 대화와 함께 외부 Groq로 전송됩니다. `sources`는 전달된 문서의 ID·상대 파일명·시작/끝 행이며 문서 본문·서버 절대 경로는 응답에 포함하지 않습니다. '검색된 참고 문서'는 후보 근거 목록이며 답변 전체가 검증되었다는 보장은 아닙니다.
+
+대화는 DB나 localStorage에 저장하지 않습니다. 화면은 최근 최대 5쌍과 현재 질문을 보내고 전체 12,000자 제한에 맞춰 오래된 쌍을 제외합니다. API는 user/assistant 교대·마지막 user·질문 2,000자 이하를 검증합니다. 응답은 비스트리밍이며 표시 답변은 최대 4,000자로 자릅니다. 문서 출처 표시는 대화 이력 텍스트에 추가하지 않습니다.
+
+기본 모델은 `GROQ_MODEL=openai/gpt-oss-20b`이며 환경 설정으로 바꿉니다. 서버 타임아웃 기본 25초, 최대 생성 1,024토큰, 앱 데모 한도는 워커당 전체 방문자 합계 분당 10건·최근 24시간 100건입니다. 카운터는 메모리 기반으로 재시작 시 초기화되고 CLI는 카운터를 거치지 않습니다. 무료 Groq 조직 한도는 별도로 적용됩니다. AI API는 주문·결제·프로필 변경 도구를 제공하지 않습니다.

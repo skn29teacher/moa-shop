@@ -1,16 +1,20 @@
 # PythonAnywhere 배포 과정
 
+문서 기준일: 2026-11-06. 기존 SQLite·Supabase Auth 쇼핑몰 배포 이력에 현재 AI 업데이트 절차를 추가했습니다. 아래 신규 Groq·문서 검색 검사는 실제 배포 서버에서 실행한 뒤 성공 여부를 판단하세요.
+
+AI 쇼핑 도우미의 Groq 키 설정, 연결 확인 명령과 업데이트 파일은 [Groq 채팅 배포 가이드](GROQ_CHAT.md#7-pythonanywhere-무료-배포)를 참고하세요.
+
 실제로 진행한 SQLite + Supabase Auth 배포 순서입니다. 계정명은 `kyuyounglee`, 앱 폴더는 `/home/kyuyounglee/moashop`, 가상환경은 `/home/kyuyounglee/.virtualenvs/moashop-sqlite`입니다. 다른 계정에서는 이 세 경로와 도메인을 함께 바꾸세요.
 
 ## 1. 구성 이해하기
 
-PythonAnywhere 무료 계정에 Flask와 SQLite 파일을 두고 Supabase Auth만 HTTPS로 호출합니다. 이전 PostgreSQL 직접 연결에서 발생했던 5432 포트 연결은 사용하지 않습니다. `.supabase.co`는 PythonAnywhere 무료 계정의 HTTPS [허용 목록](https://www.pythonanywhere.com/whitelist/)에 포함돼 있습니다. 실제 프로젝트의 접근 가능 여부는 뒤의 `check-auth` 명령으로 확인합니다.
+PythonAnywhere 무료 계정에 Flask·SQLite·공개 AI 참고 문서를 두고 Supabase Auth와 Groq를 HTTPS로 호출합니다. 모델 파일·GPU·임베딩 서버는 필요하지 않습니다. 이전 PostgreSQL 직접 연결에서 발생했던 5432 포트 연결은 사용하지 않습니다. 외부 접속은 무료 계정의 [허용 목록](https://www.pythonanywhere.com/whitelist/)과 프록시 정책을 따르며 `check-auth`·`check-groq`로 실제 연결을 확인합니다.
 
 ## 2. ZIP 파일 업로드
 
 PythonAnywhere에 로그인하고 **Files** 탭에서 `/home/kyuyounglee/`로 이동합니다. **Upload a file**로 `moashop-sqlite-deploy.zip`을 업로드합니다.
 
-ZIP은 프로젝트 루트의 `app/`, `templates/`, `static/`, `sql/schema.sql`, `sql/seed.sql`, `wsgi.py`, 의존성 파일 등을 포함해야 합니다. 실제 `.env`, SQLite 파일, `.venv`, `.git`, 캐시와 기존 ZIP은 제외합니다. 소스 업데이트용 ZIP으로 서버의 설정·운영 DB를 덮어쓰지 않도록 구성합니다.
+ZIP은 프로젝트 루트의 `app/`, `templates/`, `static/`, `knowledge/`, `sql/schema.sql`, `sql/seed.sql`, `wsgi.py`, 의존성 파일 등을 포함해야 합니다. `static/vendor/markdown-it/`도 포함합니다. 실제 `.env`, SQLite 파일, `.venv`, `.git`, 캐시와 기존 ZIP은 제외합니다. 소스 업데이트용 ZIP으로 서버의 설정·운영 DB를 덮어쓰지 않도록 구성합니다. 서버에서 별도 관리한 정책 문서를 덮어쓰지 않도록 `knowledge/` 변경 내용을 확인하고 반영하세요.
 
 ## 3. Bash에서 압축 풀기
 
@@ -53,6 +57,12 @@ SUPABASE_KEY=REPLACE_WITH_PUBLISHABLE_OR_ANON_KEY
 SECRET_KEY=REPLACE_WITH_EXISTING_OR_RANDOM_SECRET
 SESSION_DAYS=7
 COOKIE_SECURE=true
+GROQ_API_KEY=REPLACE_WITH_YOUR_GROQ_API_KEY
+GROQ_MODEL=openai/gpt-oss-20b
+GROQ_TIMEOUT_SECONDS=25
+GROQ_MAX_COMPLETION_TOKENS=1024
+CHAT_REQUESTS_PER_MINUTE=10
+CHAT_REQUESTS_PER_DAY=100
 ```
 
 SECRET_KEY가 없을 때만 생성한 값을 저장합니다. 32자 이상의 무작위 문자열이어야 합니다.
@@ -64,6 +74,8 @@ python -c "import secrets; print(secrets.token_urlsafe(48))"
 APP_ORIGIN에는 끝의 `/`를 붙이지 않습니다. COOKIE_SECURE는 HTTPS 배포에서 true여야 합니다. SUPABASE_KEY는 publishable 또는 legacy anon 키를 사용하며 Auth 관리자 키는 필요하지 않습니다. 과거 DATABASE_URL은 더 이상 사용하지 않습니다. `.env`는 서버 파일로 관리하고 채팅이나 저장소에 올리지 않습니다.
 
 ## 6. Supabase 이메일 리다이렉트 설정
+
+Groq 설정은 Supabase 설정과 별개입니다. `GROQ_API_KEY`가 비어 있으면 AI 전송만 비활성화됩니다. 가입·키 발급과 프록시 문제 해결은 [Groq 가이드](GROQ_CHAT.md)를 참고하세요. AI 문서는 [knowledge 안내](../knowledge/README.md)에 따라 UTF-8 `.md`·`.txt`로 등록합니다. `docs/` 운영 문서는 모델에 자동 제공하지 않습니다.
 
 Supabase Dashboard의 **Authentication → URL Configuration**에서 다음을 저장합니다.
 
@@ -96,9 +108,13 @@ source /home/kyuyounglee/.virtualenvs/moashop-sqlite/bin/activate
 python -m flask --app wsgi:application init-db
 python -m flask --app wsgi:application seed-demo
 python -m flask --app wsgi:application check-auth
+python -m flask --app wsgi:application check-chat-docs --query '장바구니'
+python -m flask --app wsgi:application check-groq
+# 실제 생성 검사이며 Groq 할당량을 사용합니다.
+python -m flask --app wsgi:application check-groq --generate
 ```
 
-실제로 확인한 출력은 다음과 같습니다.
+기존 SQLite·Auth 배포에서 확인한 출력은 다음과 같습니다. Groq·문서 검색 결과는 위 명령으로 현재 서버에서 별도로 확인합니다.
 
 ```text
 SQLite 3.37.2: /home/kyuyounglee/moashop/instance/shop.sqlite3
@@ -134,6 +150,8 @@ from wsgi import application
 
 Flask 개발 서버를 실행하는 `flask run` 명령은 PythonAnywhere 배포에 사용하지 않습니다. Web의 WSGI가 앱을 실행합니다. Flask가 정적 파일도 제공하므로 별도 Static files 설정은 필수가 아닙니다. 추가하려면 URL `/static/`과 경로 `/home/kyuyounglee/moashop/static/`을 연결하고 instance 폴더는 공개하지 않습니다.
 
+프로젝트 전체나 `knowledge/`를 Static files로 연결하지 않습니다. 참고 문서는 Flask가 서버 내부에서 읽으며, 답변에는 검색된 파일명·행 범위만 표시합니다. 문서 본문의 관련 구간은 Groq로 전송되므로 고객에게 공개 가능한 내용만 등록합니다.
+
 ## 9. Reload와 동작 확인
 
 Web 탭 상단의 **Reload**를 누르고 [사이트](https://kyuyounglee.pythonanywhere.com/)에 접속합니다. 샘플 상품 조회 → 가입 → 새 메일 인증 → 로그인 → 장바구니 → 주문 → 모의 결제를 확인합니다. 새 JS 파일을 반영한 뒤에는 브라우저를 강력 새로고침합니다.
@@ -147,6 +165,8 @@ python -m flask --app wsgi:application set-role --auth-user-id '실제-Auth-UUID
 ```
 
 ## 10. 업데이트와 문제 해결
+
+AI 코드 업데이트 뒤 Web Reload와 브라우저 Ctrl+F5를 수행합니다. 이후 `knowledge/` 문서의 추가·수정·삭제는 다음 요청에서 다시 읽습니다. 과거 대화의 영향을 피하려면 새 대화에서 정책 질문을 확인하세요. 현재 환불 정책은 작성 예시만 제공되므로 실제 승인 문서를 등록하기 전까지 환불 검색 결과가 없는 것이 정상입니다. 기본 `shop-guide.md`를 근거로 장바구니 이용 방법을 답하고 출처를 표시하는지 확인하세요.
 
 업데이트는 최신 소스 ZIP 업로드 → 압축 해제 → 같은 가상환경 활성화 → 필요시 의존성 설치 → Web Reload 순서로 진행합니다. `.env`, SECRET_KEY와 SQLite 파일은 유지합니다. SQLite 파일은 소스 배포 ZIP에 넣지 않습니다.
 
@@ -162,6 +182,9 @@ python -m flask --app wsgi:application set-role --auth-user-id '실제-Auth-UUID
 | `database is locked` | 오래 실행되는 DB 작업·복수 프로세스 쓰기 확인; 앱은 최대 15초 대기 후 오류 응답 가능 |
 | 로그인/변경 요청 403 | APP_ORIGIN이 실제 HTTPS 도메인과 정확히 같은지 확인 |
 | check-auth 실패 | SUPABASE_URL·키·HTTPS 접근과 Supabase 상태 확인 |
+| check-groq 실패 | 서버 Groq 키·모델 권한·무료 한도·HTTPS 프록시 확인 |
+| AI가 문서 정보를 찾지 못함 | 서버 knowledge 업로드 여부, UTF-8·확장자·용량·키워드, check-chat-docs 결과 확인 |
+| 표가 마크다운 원문으로 표시됨 | chat-markdown.js·vendor 라이브러리·템플릿·CSS 반영 및 강력 새로고침 |
 | 최신 코드인데 PostgreSQL 접속 오류 | Web Source/WSGI 경로가 예전 프로젝트를 가리키는지 확인 |
 
 오류 확인은 Web의 Error log 마지막 traceback부터 시작합니다. 비밀키나 인증 토큰이 있는 URL 전체를 공유하지 않습니다. 운영 데이터 백업은 SQLite `backup` API를 사용하거나 쓰기를 멈춘 상태에서 수행합니다. SQLite는 PythonAnywhere의 네트워크 파일시스템에서 동시 접근 제약이 있으므로 현재 구성은 소규모 시연을 대상으로 합니다. [플랫폼의 SQLite 안내](https://help.pythonanywhere.com/pages/MySiteIsSlow/).

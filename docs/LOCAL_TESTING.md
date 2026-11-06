@@ -1,5 +1,7 @@
 # 로컬 실행과 테스트
 
+기준일: 2026-11-06. AI 설정·문서 관리의 상세 절차는 [Groq 가이드](GROQ_CHAT.md)와 [참고 문서 안내](../knowledge/README.md)에 있습니다.
+
 Windows PowerShell 기준입니다. 현재 프로젝트 위치는 `C:\AI4\Day12-Demo\project`이며 Python 3.11 이상, SQLite 3.35 이상이 필요합니다. SQLite는 Python 내장 모듈을 사용합니다.
 
 ## 1. 가상환경과 의존성
@@ -28,9 +30,17 @@ SUPABASE_KEY=REPLACE_WITH_PUBLISHABLE_OR_ANON_KEY
 SECRET_KEY=REPLACE_WITH_EXISTING_OR_RANDOM_SECRET
 SESSION_DAYS=7
 COOKIE_SECURE=false
+GROQ_API_KEY=
+GROQ_MODEL=openai/gpt-oss-20b
+GROQ_TIMEOUT_SECONDS=25
+GROQ_MAX_COMPLETION_TOKENS=1024
+CHAT_REQUESTS_PER_MINUTE=10
+CHAT_REQUESTS_PER_DAY=100
 ```
 
 키가 없을 때 생성합니다.
+
+위 설명의 키 생성은 아래 `SECRET_KEY`를 의미합니다. `GROQ_API_KEY`는 [Groq Console](https://console.groq.com/keys)에서 발급받아 입력합니다. Groq 키가 비어 있으면 AI 전송은 비활성화되지만 쇼핑몰과 가상 대화 예시는 사용할 수 있습니다. 실제 키를 출력하거나 Git에 추가하지 않습니다.
 
 ```powershell
 .\.venv\Scripts\python.exe -c "import secrets; print(secrets.token_urlsafe(48))"
@@ -46,6 +56,7 @@ APP_ORIGIN과 브라우저 접속 주소는 같아야 합니다. `localhost`와 
 .\.venv\Scripts\python.exe -m flask --app wsgi:application init-db
 .\.venv\Scripts\python.exe -m flask --app wsgi:application seed-demo
 .\.venv\Scripts\python.exe -m flask --app wsgi:application check-auth
+.\.venv\Scripts\python.exe -m flask --app wsgi:application check-chat-docs --query '장바구니'
 .\.venv\Scripts\python.exe -m flask --app wsgi:application run --debug --no-reload --host 127.0.0.1 --port 8000
 ```
 
@@ -53,17 +64,22 @@ APP_ORIGIN과 브라우저 접속 주소는 같아야 합니다. `localhost`와 
 
 ## 4. 자동 테스트
 
+명령은 `C:\AI4\Day12-Demo\project`에서 실행합니다. 상위 `Day12-Demo`에서 실행하면 `Could not import 'wsgi'`와 `No such command`가 발생할 수 있습니다. 콘솔에 한글·이모지 인코딩 오류가 나면 `$env:PYTHONIOENCODING='utf-8'`를 먼저 실행합니다.
+
 ```powershell
 Set-Location 'C:\AI4\Day12-Demo\project'
 .\.venv\Scripts\python.exe -m pytest -q -p no:cacheprovider
 .\.venv\Scripts\python.exe -m pytest tests/test_sqlite_integration.py -q -p no:cacheprovider
-# Node.js가 설치돼 있다면 이메일 콜백의 실제 JS 동작도 검사
-node --test tests/auth-confirmation.test.cjs
+.\.venv\Scripts\python.exe -m pytest tests/test_chat.py tests/test_knowledge.py -q -p no:cacheprovider
+# Node.js가 설치돼 있다면 이메일 콜백과 마크다운 렌더링 검사
+node --test tests/auth-confirmation.test.cjs tests/chat-markdown.test.cjs
 node --check static/js/auth-confirmation.js
 node --check static/js/app.js
+node --check static/js/chat-preview.js
+node --check static/js/chat-markdown.js
 ```
 
-Python 자동 테스트는 실제 `.env`나 운영 DB를 사용하지 않습니다. 외부 Auth HTTPS 경계를 대역으로 교체하고 SQLite 통합 테스트는 매번 임시 파일에서 실제 SQL을 실행합니다. Node.js는 JS 회귀 테스트에만 필요하고 Flask 앱 실행에는 필요하지 않습니다.
+Python 자동 테스트는 실제 `.env`나 운영 DB·운영 지식 문서를 사용하지 않습니다. 외부 Auth·Groq HTTPS 경계를 대역으로 교체하고 SQLite 통합 테스트는 매번 임시 파일에서 실제 SQL을 실행합니다. 지식 문서는 테스트용 임시 폴더를 사용합니다. Node.js는 JS 회귀 테스트에만 필요하고 Flask 앱 실행에는 필요하지 않습니다.
 
 | 영역 | 확인 사항 |
 | --- | --- |
@@ -72,10 +88,20 @@ Python 자동 테스트는 실제 `.env`나 운영 DB를 사용하지 않습니�
 | 동시 요청 | 같은 계정 첫 로그인, 마지막 상품 구매, 같은 주문 중복 결제, 토큰 갱신 직렬화 |
 | 세션 | 쿠키 위조·만료·로그아웃 후 재사용 차단, 암호화, 비밀번호 변경 후 모든 앱 세션 폐기 |
 | 이메일 콜백 | 성공·실패·결과 없는 콜백, 파라미터 순서, 예전 루트 콜백, 토큰 제거와 로그인 화면 이동 |
+| AI 채팅 | 키 미설정, 입력·Origin·한도 검증, 상품 정보 전달, 인증·연결·빈 응답 오류, CLI |
+| 문서 검색 | 형식·용량 제한, UTF-8·하위 폴더, 변경·삭제 반영, 한국어·후속 질문, 출처 메타데이터 |
+| 마크다운 | 표·강조·목록·코드 렌더링, HTML·위험 URL·이미지 로딩 제한 |
 
 실제 이메일 발송, 원격 Supabase 정책과 운영 브라우저 화면은 테스트 대역으로 검증하지 않으므로 다음 수동 검사를 함께 수행합니다.
 
-2026-10-30 기준 Python 회귀 테스트 **137개**, 이메일 콜백 JavaScript 테스트 **5개**를 통과했습니다. 실제 Supabase 설정 변경과 새 메일의 리다이렉트는 운영 환경에서 별도로 확인해야 합니다.
+2026-11-06 코드 검증 결과는 Python **176개 통과·1개 제외**, JavaScript **11개 통과**입니다. 제외된 항목은 Windows 권한 부족으로 심볼릭 링크를 만들지 못한 문서 검색 검사입니다. 실제 Supabase 설정 변경과 새 메일의 리다이렉트는 운영 환경에서 별도로 확인해야 합니다. 이후 코드나 환경이 바뀌면 위 명령으로 재검증합니다.
+
+Windows 임시 폴더 접근 오류가 나면 기존 데이터가 없는 새 폴더를 지정합니다. `--basetemp`는 지정 폴더를 비우므로 고유한 경로를 사용하세요.
+
+```powershell
+$testTemp = Join-Path (Get-Location) ('.test-runs/check-' + [guid]::NewGuid().ToString('N'))
+.\.venv\Scripts\python.exe -m pytest -q -p no:cacheprovider --basetemp $testTemp
+```
 
 ## 5. 브라우저에서 확인하기
 
@@ -105,6 +131,33 @@ Python 자동 테스트는 실제 `.env`나 운영 DB를 사용하지 않습니�
 ```
 
 ## 6. 피드백 전달
+
+### AI 채팅·문서 검색 수동 확인
+
+```powershell
+Set-Location 'C:\AI4\Day12-Demo\project'
+$env:PYTHONIOENCODING='utf-8'
+.\.venv\Scripts\python.exe -m flask --app wsgi:application check-chat-docs
+.\.venv\Scripts\python.exe -m flask --app wsgi:application check-chat-docs --query '환불'
+.\.venv\Scripts\python.exe -m flask --app wsgi:application check-groq
+.\.venv\Scripts\python.exe -m flask --app wsgi:application check-groq --generate
+```
+
+`check-groq`는 네트워크로 모델 목록을 확인하고 `--generate`는 실제 답변을 생성해 Groq 할당량을 사용합니다. `check-chat-docs`는 로컬 문서만 읽습니다. 현재 기본 문서는 `shop-guide.md` 1개이고 환불 검색 결과 0개가 정상입니다. 실제 환불 문서를 등록한 뒤 다시 검색하세요.
+
+| 확인 | 기대 결과 |
+| --- | --- |
+| `/#/chat`에서 장바구니 로그인 필요 여부 질문 | 이용 안내를 근거로 답하고 참고 문서 파일·행 표시 |
+| 문서 없이 환불 기한 질문 | 기한을 지어내지 않고 등록 문서에서 확인할 수 없다고 안내하도록 지시됨 |
+| 공개 정책 파일 등록·수정·삭제 후 새 질문 | 다음 요청에서 최신 파일 기준 검색; 새 대화로 확인 권장 |
+| 상품 가격·재고 질문 | 현재 DB 상품 정보 참고 |
+| 표 형태 답변 요청 | HTML 표로 표시되고 좁은 화면에서는 가로 스크롤 |
+| 가상 대화 예시 열기 | Groq 호출 없이 예시 표시 |
+| 문서에서 찾지 못한 정책 질문 | 근거 없는 기간·비용·연락처를 만들어내지 않는지 실제 응답 확인 |
+
+로컬 실제 Groq 연결과 기본 이용 안내 기반 답변·문서 출처는 확인했습니다. 문서 검색 결과나 프롬프트만으로 모델의 모든 답변이 검증되는 것은 아니므로 운영자가 등록한 실제 정책 질문을 추가로 점검합니다. 이번 문서 정리는 실제 PythonAnywhere 서버의 신규 AI 기능 배포 완료를 의미하지 않습니다.
+
+### 피드백 양식
 
 ```text
 환경: 로컬 / PythonAnywhere

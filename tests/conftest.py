@@ -17,7 +17,9 @@ def password_hash():
 
 
 @pytest.fixture
-def settings(tmp_path):
+def settings(tmp_path, monkeypatch):
+    from app.services import knowledge
+    monkeypatch.setattr(knowledge, "KNOWLEDGE_DIR", tmp_path / "knowledge")
     # 실제 .env를 읽지 않습니다. 외부 접속에 사용할 수 없는 테스트 전용 설정입니다.
     return Settings(
         _env_file=None, app_origin=ORIGIN, database_path=tmp_path / "unit.sqlite3",

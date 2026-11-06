@@ -13,6 +13,8 @@ from app.db.connection import close_connection, create_pool
 from app.routers.auth import router as auth_router
 from app.routers.admin import router as admin_router
 from app.routers.cart import router as cart_router
+from app.routers.chat import router as chat_router
+from app.services.chat import ChatLimiter
 from app.routers.members import router as members_router
 from app.routers.orders import router as orders_router
 from app.routers.payments import router as payments_router
@@ -47,6 +49,7 @@ def create_app(settings: Settings | None = None, pool=None) -> Flask:
         static_url_path="/static",
     )
     app.config.update(settings=settings, db_pool=pool)
+    app.extensions["chat_limiter"] = ChatLimiter()
     from app.cli import register_commands
     register_commands(app)
     app.teardown_appcontext(close_connection)
@@ -55,6 +58,7 @@ def create_app(settings: Settings | None = None, pool=None) -> Flask:
     app.register_blueprint(admin_router)
     app.register_blueprint(products_router)
     app.register_blueprint(cart_router)
+    app.register_blueprint(chat_router)
     app.register_blueprint(orders_router)
     app.register_blueprint(payments_router)
     app.register_blueprint(members_router)
