@@ -168,6 +168,13 @@ $chatTestTemp = Join-Path (Get-Location) ('.test-runs/groq-' + [guid]::NewGuid()
 
 기존 [배포 가이드](DEPLOYMENT.md)의 경로·가상환경을 재사용합니다. 아래는 현재 문서의 계정명 기준이며 다른 계정이면 경로를 바꿉니다.
 
+매 배포 전에 내 PC의 PowerShell에서 아래 명령으로 최신 소스를 압축합니다. `dist/moashop-sqlite-deploy.zip`을 PythonAnywhere **Files → /home/kyuyounglee → Upload a file**에서 선택합니다. ZIP 구성과 서버 압축 해제 명령은 [배포 문서](DEPLOYMENT.md#2-2-올릴-파일과-zip-내부-구조)를 참고하세요.
+
+```powershell
+Set-Location 'C:\AI4\Day12-Demo\project'
+.\.venv\Scripts\python.exe scripts/package_deploy.py
+```
+
 1. 변경한 `app/`, `templates/`, `static/` 등 소스를 업로드합니다. 서버의 실제 `.env`, SQLite DB를 로컬 파일로 덮어쓰지 않습니다. 새 파일 `app/routers/chat.py`, `app/services/chat.py`, `app/schemas/chat.py`, `static/js/chat-preview.js`, `static/js/chat-markdown.js`, `static/css/chat.css`, `static/vendor/markdown-it/`도 포함해야 합니다. 마크다운 라이브러리는 프로젝트에 포함되어 별도 npm 설치나 외부 CDN 접속이 필요하지 않습니다.
 2. 서버 `/home/kyuyounglee/moashop/.env`에 위 Groq 설정을 추가합니다. 실제 키는 Files 편집기에서 입력하고 저장합니다.
 3. 운영 환경의 기존 설정을 유지합니다.

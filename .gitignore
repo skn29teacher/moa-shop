@@ -13,3 +13,4 @@ instance/
 *.sqlite3-shm
 
 .test-runs/
+/dist/

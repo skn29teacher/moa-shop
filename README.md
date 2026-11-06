@@ -47,6 +47,8 @@ Set-Location 'C:\AI4\Day12-Demo\project'
 
 ## 현재 제공하는 기능
 
+배포 ZIP은 `project/`에서 `.\.venv\Scripts\python.exe scripts/package_deploy.py`로 직접 생성합니다. 결과는 `dist/moashop-sqlite-deploy.zip`입니다. 실제 `.env`·DB·가상환경을 제외하는 구성과 업로드·압축 해제 명령은 [배포 문서](docs/DEPLOYMENT.md#2-2-올릴-파일과-zip-내부-구조)에 있습니다.
+
 AI 연결 확인은 `check-groq`, 실제 답변 생성 확인은 `check-groq --generate`입니다. 후자는 무료 API 할당량을 사용합니다. `check-chat-docs --query "장바구니"`는 외부 호출 없이 문서 검색만 확인합니다. 모든 명령은 `project/` 폴더에서 실행합니다.
 
 비회원은 상품 목록과 상세를 볼 수 있습니다. 회원은 자신의 장바구니·주문·구매내역·프로필을 사용하고 비밀번호 변경과 탈퇴를 할 수 있습니다. 관리자는 상품 등록·가격·재고 수정과 전체 고객 주문 조회를 할 수 있습니다. 결제는 모의 결제이며 실제 PG 결제·환불·배송 상태 변경은 구현하지 않았습니다.

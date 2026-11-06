@@ -12,7 +12,70 @@ PythonAnywhere 무료 계정에 Flask·SQLite·공개 AI 참고 문서를 두고
 
 ## 2. ZIP 파일 업로드
 
-PythonAnywhere에 로그인하고 **Files** 탭에서 `/home/kyuyounglee/`로 이동합니다. **Upload a file**로 `moashop-sqlite-deploy.zip`을 업로드합니다.
+### 2-1. 현재 화면 확인
+
+2026-11-06 사용자가 공유한 화면은 **Files → /home/kyuyounglee**입니다. `moashop/`와 `.virtualenvs/`가 이미 있으므로 기존 쇼핑몰을 업데이트하는 상황입니다. 화면에는 사용량 **175.7MB / 512.0MB (34%)**와 **100MiB maximum size**가 표시되어 있습니다. 이 수치는 공유 시점의 상태이며 업로드 전 최신 화면을 확인합니다.
+
+이 화면에서 **Upload a file**로 `moashop-sqlite-deploy.zip`을 업로드하면 됩니다. `moashop/` 폴더 안으로 먼저 들어갈 필요는 없습니다. ZIP을 홈 폴더에 놓고 다음 단계에서 그 내용을 기존 `moashop/`로 압축 해제합니다.
+
+### 2-2. 올릴 파일과 ZIP 내부 구조
+
+#### 로컬에서 배포 ZIP 만들기 — 매번 같은 명령 사용
+
+아래 명령은 **내 PC의 PowerShell**에서 실행합니다. AI가 만들어 준 ZIP을 다운로드할 필요 없이 현재 저장된 프로젝트 소스로 새 ZIP을 만듭니다. 별도 압축 프로그램·패키지는 필요하지 않습니다.
+
+```powershell
+Set-Location 'C:\AI4\Day12-Demo\project'
+.\.venv\Scripts\python.exe scripts/package_deploy.py
+```
+
+프로젝트 가상환경이 활성화되어 있다면 다음 명령도 같습니다.
+
+```powershell
+python scripts/package_deploy.py
+```
+
+생성 위치:
+
+```text
+C:\AI4\Day12-Demo\project\dist\moashop-sqlite-deploy.zip
+```
+
+스크립트는 `app/`, `templates/`, `static/`, `knowledge/`와 실행에 필요한 루트 파일만 선택합니다. 실제 `.env`·DB·가상환경·Git·테스트·캐시와 모델 가중치 파일은 제외합니다. 실제 키가 없는 `.env.example`은 포함합니다. ZIP 무결성과 100MiB 미만을 확인한 뒤 기존 배포 ZIP을 새 파일로 교체합니다. `dist/`는 Git에서 제외합니다.
+
+코드를 수정하거나 AI 참고 문서를 바꿨으면 저장한 뒤 같은 명령을 다시 실행하고 **dist에 새로 생성된 ZIP**을 업로드하세요. 이 명령은 로컬 ZIP만 만들며 PythonAnywhere 업로드·압축 해제·Reload는 별도로 진행합니다. 서버에서 따로 수정한 정책 문서는 압축 해제 전 비교합니다.
+
+파일 생성 확인:
+
+```powershell
+Get-Item .\dist\moashop-sqlite-deploy.zip | Select-Object FullName, Length, LastWriteTime
+```
+
+일반 프로젝트 폴더 전체를 압축하지 않고 배포용 소스 ZIP을 사용합니다. 압축을 열었을 때 맨 위에 아래 항목이 바로 보여야 합니다. 바깥에 `project/`나 `moashop/`가 한 겹 더 있으면 기존 앱 경로에 잘못 풀릴 수 있습니다.
+
+```text
+moashop-sqlite-deploy.zip
+├─ app/
+├─ templates/
+├─ static/                  # vendor/markdown-it/ 포함
+├─ knowledge/               # 공개 AI 참고 문서
+├─ sql/schema.sql
+├─ sql/seed.sql
+├─ wsgi.py
+├─ requirements.txt
+└─ .env.example             # 실제 키가 없는 설정 예시
+```
+
+Windows `.venv`는 올리지 않습니다. 서버에서 기존 Linux 가상환경을 재사용합니다. 실제 `.env`, `instance/`, SQLite DB, `.git`, 테스트·캐시, 다운로드한 AI 모델도 제외합니다. 이번 구성은 Groq 외부 API를 이용하므로 모델 파일을 서버에 업로드할 필요가 없습니다.
+
+### 2-3. Upload a file에서 실행할 순서
+
+1. 현재 `/home/kyuyounglee` 화면에서 **Upload a file**를 누릅니다.
+2. 로컬 `C:\AI4\Day12-Demo\project\dist\moashop-sqlite-deploy.zip` 한 개를 선택합니다.
+3. 업로드가 끝나고 **Files 목록에 ZIP 이름이 나타나는지** 확인합니다. 아직 공개 사이트의 코드는 바뀌지 않습니다.
+4. 같은 화면의 **Open Bash console here**를 선택해 다음 절의 명령을 실행합니다. 업로드만으로 ZIP이 자동 해제되거나 Web 앱이 Reload되지는 않습니다.
+
+PythonAnywhere 공식 안내도 무료 계정에서 **ZIP 업로드 → Bash의 unzip으로 압축 해제**하는 절차를 제공합니다. Files 업로드 버튼은 **100MiB보다 작은 파일**에 사용합니다. 계정 저장공간에는 ZIP과 압축 해제된 소스가 함께 들어가므로 여유 공간을 확인합니다. [공식 파일 업로드 안내](https://help.pythonanywhere.com/pages/UploadingAndDownloadingFiles/) — 2026-11-06 확인.
 
 ZIP은 프로젝트 루트의 `app/`, `templates/`, `static/`, `knowledge/`, `sql/schema.sql`, `sql/seed.sql`, `wsgi.py`, 의존성 파일 등을 포함해야 합니다. `static/vendor/markdown-it/`도 포함합니다. 실제 `.env`, SQLite 파일, `.venv`, `.git`, 캐시와 기존 ZIP은 제외합니다. 소스 업데이트용 ZIP으로 서버의 설정·운영 DB를 덮어쓰지 않도록 구성합니다. 서버에서 별도 관리한 정책 문서를 덮어쓰지 않도록 `knowledge/` 변경 내용을 확인하고 반영하세요.
 
@@ -20,8 +83,12 @@ ZIP은 프로젝트 루트의 `app/`, `templates/`, `static/`, `knowledge/`, `sq
 
 **Consoles → Bash**를 열어 실행합니다. 기존 파일과 같은 이름의 소스는 최신 코드로 교체됩니다.
 
+앞 화면의 **Open Bash console here**로 열었다면 이미 홈 폴더일 수 있지만, 아래 `cd`로 위치를 명확히 맞춥니다. 먼저 `ls -lh moashop-sqlite-deploy.zip`과 `unzip -l moashop-sqlite-deploy.zip`으로 파일명·내부 경로를 확인합니다. 기존 `.env`·DB·서버에서 따로 수정한 정책 문서는 유지하고, ZIP에 같은 이름의 정책 파일이 있으면 덮어쓰기 전에 비교하세요.
+
 ```bash
 cd /home/kyuyounglee
+ls -lh moashop-sqlite-deploy.zip
+unzip -l moashop-sqlite-deploy.zip
 mkdir -p moashop
 unzip -o moashop-sqlite-deploy.zip -d moashop
 cd moashop
@@ -30,6 +97,8 @@ python3 --version
 ```
 
 이번 작업에서는 파일 4개와 `Python 3.13.1` 출력을 확인했습니다.
+
+위 `unzip -o`는 기존 같은 이름의 소스 파일을 덮어씁니다. ZIP에서 실제 `.env`·DB를 제외하므로 이 파일들은 유지됩니다. 새 ZIP은 코드에 필요한 파일만 포함하므로 기존 서버에서 제거해야 할 오래된 파일까지 자동 삭제하지는 않습니다. 압축 해제 후 이 문서의 가상환경·설정·연결 검사와 **Web → Reload**까지 완료해야 사이트에 반영됩니다.
 
 ## 4. 가상환경과 패키지 준비
 
